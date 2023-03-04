@@ -14,6 +14,11 @@ activate:
 	@echo "Activating virtual environment"
 	poetry shell
 
+run:
+	@echo "Running app"
+	streamlit run app.py
+
+
 format:
 	@echo "Formatting..."
 	black ./
