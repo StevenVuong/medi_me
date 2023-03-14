@@ -12,6 +12,7 @@ install:
 
 activate:
 	@echo "Activating virtual environment"
+	poetry env use /bin/python3.10
 	poetry shell
 
 run:

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "earnings-projector"
+name = "medi-me"
 version = "0.1.0"
 description = "To project earnings through to the future!"
 authors = ["steven <stevenvuong96@gmail.com>"]
