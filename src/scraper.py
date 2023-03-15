@@ -2,41 +2,78 @@ import requests
 from bs4 import BeautifulSoup
 from prefect import flow, task
 import re
-from pydantic import BaseModel, ValidationError, validator
+from dataclasses import dataclass
 
 
 REGISTERED_DOCTORS_URL = "https://www.mchk.org.hk/english/list_register/list.php?page=1&ipp=20&type=L"
 
 
-class EnZhText(BaseModel):
+@dataclass
+class EnZhText:
     text: str
+
+    def __init__(self, text: str):
+        self.text = text.strip()
 
     def extract_en(self):
         return " ".join(re.findall(r"[a-zA-Z0-9.,!?]+", self.text))
 
     def extract_zh(self):
-        return " ".join(re.findall(r"[\\u4e00-\\u9fff0-9.,!?]+", self.text))
+        # Note: This is quite crude and only extracts purely
+        # chinese characters. Does not capture nuances.
+        return "".join(re.findall(r"[\u4e00-\u9fff]", self.text))
 
 
-class Qualification(BaseModel):
-    nature: EnZhText
-    year: int
+@dataclass
+class Qualification:
+    nature: EnZhText | None  # nature of the qualification
     tag: str | None
+    year: int
 
-    def __init__(self, nature_tag:str, year:str):
-        self.nature = 
-        self.tag = 
+    def __init__(self, nature_tag: str, year: str):
+        """Parse qualification item to class.
+        We separate the tag from nature_tag, which is the string inside
+        the brackets, and remove the brackets from nature_tag to get nature.
+        Args:
+            - nature_tag (str): Eg. MB BS (Lond)
+            - year (str): year of study
+        """
+        self.nature = EnZhText(re.sub(r"\[[^]]*\]|\([^)]*\)", "", nature_tag))
+
+        tag = re.findall(r"\[[^]]*\]|\([^)]*\)", nature_tag)
+        tag = [match.strip("()") for match in tag]
+        self.tag = tag[0] if tag else None
+
         self.year = int(year)
 
 
-class Practitioner(BaseModel):
+@dataclass
+class Practitioner:
     registration_no: str
     name: EnZhText
     address: EnZhText
     qualifications: list[Qualification]
 
+    def __init__(self, str_column: list[str]):
+        """Format of str_column will be something like:
+        ['M15833', '區卓仲AU, CHEUK CHUNG', '', '', '', '香港大學內外全科醫學士MB BS (HK)', '', '2008']
+        """
+        self.registration_no = str_column[0]
+        self.name = EnZhText(str_column[1])
+        self.address = EnZhText(str_column[3])
+        self.qualifications = [
+            Qualification(nature_tag=str_column[5], year=str_column[7])
+        ]
 
-@task
+    def add_qualifications(self, str_column: list[str]):
+        """Format of str_column will be something like:
+        ['FHKAM (Radiology)', '', '1999']
+        """
+        self.qualifications.append(
+            Qualification(nature_tag=str_column[0], year=str_column[2])
+        )
+
+
 def make_request(url: str) -> requests.Response:
     """
     Send a GET request to a given URL and return the response object.
@@ -63,7 +100,6 @@ def make_request(url: str) -> requests.Response:
         print(f"Error when trying to parse {url}! Error code: {e}")
 
 
-@flow
 def main():
     # make request and initialise beautiful soup object
     page_request = make_request(REGISTERED_DOCTORS_URL)
@@ -81,28 +117,24 @@ def main():
         # parse individual columns
         cols = row.find_all("td")
         cols = [ele.text.strip() for ele in cols]
-        cols = [ele for ele in cols if ele]
-
-        # parse to Practitioner object
-        if cols[0][0]=='M':
-
-            # todo; move logic to practitioner
-            practitioner_list.append(Practitioner(
-                registration_no = cols[0]
-                name = cols[1]
-                address = cols[2]
-                qualifications = [Qualification(nature=cols[3])]
-            ))
-        else:
-            practitioner_list.append()
-
-
 
         # breaks once we get to the bottom of the table
         if cols[0].startswith("« Previous"):
             break
 
-        print(cols)
+        # parse to Practitioner object
+        if cols[0][0] == "M":
+            practitioner = Practitioner(cols)
+            practitioner_list.append(practitioner)
+
+        else:
+            practitioner_list[-1].add_qualifications(cols)
+
+    for p in practitioner_list:
+        if p.address.text != "":
+            print(p)
+            print(p.address.extract_en())
+            print(p.address.extract_zh())
 
 
 if __name__ == "__main__":

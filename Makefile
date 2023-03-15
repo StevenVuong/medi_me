@@ -20,6 +20,7 @@ run_app:
 	streamlit run app.py
 
 scrape:
+	clear
 	@echo "Scraping websites"
 	python ./src/scraper.py
 
