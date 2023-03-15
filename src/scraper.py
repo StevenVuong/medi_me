@@ -1,31 +1,45 @@
 import requests
 from bs4 import BeautifulSoup
-from prefect import flow, task
 import re
 from dataclasses import dataclass
+from loguru import logger
+import logging
 
+# TODO: Add logging messages
+# logger.debug("This is a debug message")
+# logger.info("This is an info message")
+# logger.warning("This is a warning message")
+# logger.error("This is an error message")
+# logger.critical("This is a critical message")
 
 REGISTERED_DOCTORS_URL = "https://www.mchk.org.hk/english/list_register/list.php?page=1&ipp=20&type=L"
 
 
 @dataclass
 class EnZhText:
+    """Stores text and can extract both English alphabet and Chinese characters"""
+
     text: str
 
     def __init__(self, text: str):
         self.text = text.strip()
 
     def extract_en(self):
+        """Regex that captures alphabet, numbers and basic punctuation .,!?"""
         return " ".join(re.findall(r"[a-zA-Z0-9.,!?]+", self.text))
 
     def extract_zh(self):
-        # Note: This is quite crude and only extracts purely
-        # chinese characters. Does not capture nuances.
+        """
+        Note: This is quite crude and only extracts purely
+        chinese characters.
+        """
         return "".join(re.findall(r"[\u4e00-\u9fff]", self.text))
 
 
 @dataclass
 class Qualification:
+    """Class to store qualification of medical practitioner"""
+
     nature: EnZhText | None  # nature of the qualification
     tag: str | None
     year: int
@@ -100,9 +114,11 @@ def make_request(url: str) -> requests.Response:
         print(f"Error when trying to parse {url}! Error code: {e}")
 
 
-def main():
+# TODO: Turn this into a class
+def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
+    """ """
     # make request and initialise beautiful soup object
-    page_request = make_request(REGISTERED_DOCTORS_URL)
+    page_request = make_request(page_url)
     soup = BeautifulSoup(page_request.content, "lxml")
 
     # find the first table on the page
@@ -130,12 +146,16 @@ def main():
         else:
             practitioner_list[-1].add_qualifications(cols)
 
-    for p in practitioner_list:
-        if p.address.text != "":
-            print(p)
-            print(p.address.extract_en())
-            print(p.address.extract_zh())
+    return practitioner_list
 
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(
+        format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
+        level=logging.DEBUG,
+    )
+    practitioner_list = parse_registered_doctors_page(REGISTERED_DOCTORS_URL)
+    from pprint import pprint
+
+    for p in practitioner_list:
+        pprint(p)
