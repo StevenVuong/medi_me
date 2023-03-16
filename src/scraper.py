@@ -5,6 +5,8 @@ from dataclasses import asdict, dataclass
 from typing import Any, Callable
 import aiohttp
 import asyncio
+import functools
+import random
 
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -14,8 +16,34 @@ from tqdm.asyncio import tqdm
 REGISTERED_DOCTORS_URL = (
     lambda x: f"https://www.mchk.org.hk/english/list_register/list.php?page={x}&ipp=20&type=L"
 )
-NUM_PAGES = 10  # num pages on the website
+NUM_PAGES = 400  # num pages on the website - 767
 OUTPUT_JSONFILENAME = "./data/scraped_doctors_overview.json"
+
+
+def retry_with_backoff(retries=5, backoff_in_ms=100):
+    def wrapper(f):
+        @functools.wraps(f)
+        async def wrapped(*args, **kwargs):
+            x = 0
+            while True:
+                try:
+                    return await f(*args, **kwargs)
+                except Exception as e:
+                    print("Fetch error:", e)
+
+                    if x == retries:
+                        raise
+                    else:
+                        sleep_ms = backoff_in_ms * 2**x + random.uniform(
+                            0, 1
+                        )
+                        await asyncio.sleep(sleep_ms / 1000)
+                        x += 1
+                        print(f"Retrying {x + 1}/{retries}")
+
+        return wrapped
+
+    return wrapper
 
 
 @dataclass
@@ -93,6 +121,7 @@ class Practitioner:
         )
 
 
+@retry_with_backoff(retries=5, backoff_in_ms=500)
 async def fetch(session: aiohttp.ClientSession, url: str) -> str:
     """
     Fetches the content of a web page asynchronously.
@@ -106,11 +135,17 @@ async def fetch(session: aiohttp.ClientSession, url: str) -> str:
     """
     try:
         async with session.get(url) as response:
+            print(response.status)
+            if response.status == 520:
+                raise aiohttp.ClientResponseError(f"Error connecting to {url}")
+            assert (
+                response.status == 200
+            ), f"Response status: {response.status}"
             return await response.text()
     except aiohttp.ClientConnectionError as e:
         print(f"An error occurred while connecting to {url}: {e}")
     except aiohttp.ClientResponseError as e:
-        print(f"An error occurred while fetching {url}: {e}")
+        print(f"An client response error occurred while fetching {url}: {e}")
     except asyncio.TimeoutError as e:
         print(f"A timeout occurred while fetching {url}: {e}")
 
@@ -129,7 +164,13 @@ async def parse_registered_doctors_page(page_request) -> list[Practitioner]:
     soup = BeautifulSoup(page_request, "lxml")
 
     # find the first table on the page
-    table = soup.find_all("table")[0]
+    table = soup.find_all("table")
+
+    # # error handling if no table is found
+    # if not table: ## DEBUG
+    #     print(soup)
+    #     return None
+    table = table[0]
     rows = table.find_all("tr")
 
     # initialise practitioner list to parse
@@ -186,12 +227,15 @@ async def load_doctors_pages(
     # load pages async
     async with aiohttp.ClientSession() as session:
         tasks = []
-        for url in urls:
+        logger.debug("Fetching URLS")
+        for url in tqdm(urls):
             tasks.append(fetch(session, url))
+        logger.debug("Gathering Tasks")
         pages = await asyncio.gather(*tasks)
         for page in tqdm(pages):  # add tqdm for progress bar tracking
             if page is not None:
                 processed_page = await parse_registered_doctors_page(page)
+                # if processed_page is not None: ## DEBUG
                 processed_pages.extend(processed_page)
 
     return processed_pages
@@ -205,8 +249,7 @@ if __name__ == "__main__":
     )
 
     logger.info("Parsing registered doctors page asynchronously.")
-    loop = asyncio.get_event_loop()
-    full_practitioner_list = loop.run_until_complete(
+    full_practitioner_list = asyncio.run(
         load_doctors_pages(REGISTERED_DOCTORS_URL, NUM_PAGES)
     )
 
