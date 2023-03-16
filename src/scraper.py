@@ -1,10 +1,12 @@
+import json
+import logging
+import re
+from dataclasses import asdict, dataclass
+from typing import Any
+
 import requests
 from bs4 import BeautifulSoup
-import re
-from dataclasses import dataclass, asdict
 from loguru import logger
-import logging
-import json
 from tqdm import tqdm
 
 # registered doctors URL; takes page number as parameter
@@ -63,6 +65,8 @@ class Qualification:
 
 @dataclass
 class Practitioner:
+    """Class to store practitioner information, and parse from __init__"""
+
     registration_no: str
     name: EnZhText
     address: EnZhText
@@ -117,7 +121,11 @@ def make_request(url: str) -> requests.Response:
 def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
     """
     Parses registered doctor page url from HK Government list of registered
-    medical practitioners
+    medical practitioners.
+    Args:
+        - page_url(str): URL of page to parse
+    Returns:
+        - List of practitioners parsed from page
     """
     # make request and initialise beautiful soup object
     page_request = make_request(page_url)
@@ -151,7 +159,19 @@ def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
     return practitioner_list
 
 
+def save_dataclass_list_to_json(list_to_save: list[Any], output_filepath: str):
+    """Takes an input of a dataclass list and saves to json file."""
+    with open(output_filepath, "w+", encoding="utf-8") as f:
+        json.dump(
+            [asdict(obj) for obj in list_to_save],
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
 if __name__ == "__main__":
+    # set log level; debug, info, warning, error, critical
     logging.basicConfig(
         format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
         level=logging.DEBUG,
@@ -161,21 +181,11 @@ if __name__ == "__main__":
 
     logger.info("Parsing registered doctors page")
 
-    # Loop through pages and parse information
+    # Loop through pages and parse information; takes ~12 minutes with standard loop
     for page_num in tqdm(range(NUM_PAGES + 1)):
         practitioner_list = parse_registered_doctors_page(
             REGISTERED_DOCTORS_URL(page_num)
         )
         full_practitioner_list.extend(practitioner_list)
 
-        if page_num == 2:
-            break
-
-    # save to json file
-    with open(OUTPUT_JSONFILENAME, "w+", encoding="utf-8") as f:
-        json.dump(
-            [asdict(obj) for obj in full_practitioner_list],
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
+    save_dataclass_list_to_json(full_practitioner_list, OUTPUT_JSONFILENAME)
