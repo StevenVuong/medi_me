@@ -1,18 +1,18 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from loguru import logger
 import logging
+import json
+from tqdm import tqdm
 
-# TODO: Add logging messages
-# logger.debug("This is a debug message")
-# logger.info("This is an info message")
-# logger.warning("This is a warning message")
-# logger.error("This is an error message")
-# logger.critical("This is a critical message")
-
-REGISTERED_DOCTORS_URL = "https://www.mchk.org.hk/english/list_register/list.php?page=1&ipp=20&type=L"
+# registered doctors URL; takes page number as parameter
+REGISTERED_DOCTORS_URL = (
+    lambda x: f"https://www.mchk.org.hk/english/list_register/list.php?page={x}&ipp=20&type=L"
+)
+NUM_PAGES = 767  # num pages on the website
+OUTPUT_JSONFILENAME = "./data/scraped_doctors_overview.json"
 
 
 @dataclass
@@ -114,9 +114,11 @@ def make_request(url: str) -> requests.Response:
         print(f"Error when trying to parse {url}! Error code: {e}")
 
 
-# TODO: Turn this into a class
 def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
-    """ """
+    """
+    Parses registered doctor page url from HK Government list of registered
+    medical practitioners
+    """
     # make request and initialise beautiful soup object
     page_request = make_request(page_url)
     soup = BeautifulSoup(page_request.content, "lxml")
@@ -138,8 +140,8 @@ def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
         if cols[0].startswith("« Previous"):
             break
 
-        # parse to Practitioner object
-        if cols[0][0] == "M":
+        # parse to Practitioner object; first line is a regiration num 'M17694'
+        if cols[0][0] == "M" and len(cols[0]) == 6:
             practitioner = Practitioner(cols)
             practitioner_list.append(practitioner)
 
@@ -154,8 +156,26 @@ if __name__ == "__main__":
         format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
         level=logging.DEBUG,
     )
-    practitioner_list = parse_registered_doctors_page(REGISTERED_DOCTORS_URL)
-    from pprint import pprint
 
-    for p in practitioner_list:
-        pprint(p)
+    full_practitioner_list = []
+
+    logger.info("Parsing registered doctors page")
+
+    # Loop through pages and parse information
+    for page_num in tqdm(range(NUM_PAGES + 1)):
+        practitioner_list = parse_registered_doctors_page(
+            REGISTERED_DOCTORS_URL(page_num)
+        )
+        full_practitioner_list.extend(practitioner_list)
+
+        if page_num == 2:
+            break
+
+    # save to json file
+    with open(OUTPUT_JSONFILENAME, "w+", encoding="utf-8") as f:
+        json.dump(
+            [asdict(obj) for obj in full_practitioner_list],
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
