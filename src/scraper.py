@@ -1,13 +1,13 @@
+import asyncio
+import functools
 import json
 import logging
+import random
 import re
 from dataclasses import asdict, dataclass
 from typing import Any, Callable
-import aiohttp
-import asyncio
-import functools
-import random
 
+import aiohttp
 from bs4 import BeautifulSoup
 from loguru import logger
 from tqdm.asyncio import tqdm
@@ -16,8 +16,10 @@ from tqdm.asyncio import tqdm
 REGISTERED_DOCTORS_URL = (
     lambda x: f"https://www.mchk.org.hk/english/list_register/list.php?page={x}&ipp=20&type=L"
 )
-NUM_PAGES = 400  # num pages on the website - 767
+NUM_PAGES = 767  # num pages on the website - 767
 OUTPUT_JSONFILENAME = "./data/scraped_doctors_overview.json"
+
+# TODO: Add docstrings
 
 
 def retry_with_backoff(retries=5, backoff_in_ms=100):
@@ -135,7 +137,6 @@ async def fetch(session: aiohttp.ClientSession, url: str) -> str:
     """
     try:
         async with session.get(url) as response:
-            print(response.status)
             if response.status == 520:
                 raise aiohttp.ClientResponseError(f"Error connecting to {url}")
             assert (
@@ -166,10 +167,7 @@ async def parse_registered_doctors_page(page_request) -> list[Practitioner]:
     # find the first table on the page
     table = soup.find_all("table")
 
-    # # error handling if no table is found
-    # if not table: ## DEBUG
-    #     print(soup)
-    #     return None
+    # error handling if no table is found
     table = table[0]
     rows = table.find_all("tr")
 
@@ -235,7 +233,6 @@ async def load_doctors_pages(
         for page in tqdm(pages):  # add tqdm for progress bar tracking
             if page is not None:
                 processed_page = await parse_registered_doctors_page(page)
-                # if processed_page is not None: ## DEBUG
                 processed_pages.extend(processed_page)
 
     return processed_pages
