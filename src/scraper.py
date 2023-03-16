@@ -2,18 +2,19 @@ import json
 import logging
 import re
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Callable
+import aiohttp
+import asyncio
 
-import requests
 from bs4 import BeautifulSoup
 from loguru import logger
-from tqdm import tqdm
+from tqdm.asyncio import tqdm
 
 # registered doctors URL; takes page number as parameter
 REGISTERED_DOCTORS_URL = (
     lambda x: f"https://www.mchk.org.hk/english/list_register/list.php?page={x}&ipp=20&type=L"
 )
-NUM_PAGES = 767  # num pages on the website
+NUM_PAGES = 10  # num pages on the website
 OUTPUT_JSONFILENAME = "./data/scraped_doctors_overview.json"
 
 
@@ -92,33 +93,29 @@ class Practitioner:
         )
 
 
-def make_request(url: str) -> requests.Response:
+async def fetch(session: aiohttp.ClientSession, url: str) -> str:
     """
-    Send a GET request to a given URL and return the response object.
+    Fetches the content of a web page asynchronously.
 
-    Parameters:
-        - url (str): The URL to send the request to.
-
+    Args:
+        - session: An aiohttp.ClientSession object used to make the HTTP request.
+        - url: The URL of the web page to fetch.
     Returns:
-        - requests.Response: The response object from the server.
-
-    Raises:
-        - requests.exceptions.RequestException: If the request fails for any reason.
-        - Exception: If any other error occurs during the process.
+        The content of the web page as a string if the request is successful,
+        otherwise None.
     """
     try:
-        response = requests.get(url)
-        print(response.status_code)
-        return response
+        async with session.get(url) as response:
+            return await response.text()
+    except aiohttp.ClientConnectionError as e:
+        print(f"An error occurred while connecting to {url}: {e}")
+    except aiohttp.ClientResponseError as e:
+        print(f"An error occurred while fetching {url}: {e}")
+    except asyncio.TimeoutError as e:
+        print(f"A timeout occurred while fetching {url}: {e}")
 
-    except requests.exceptions.RequestException as e:
-        print(f"Request to {url} was unsuccessful! Error code: {e}")
 
-    except Exception as e:
-        print(f"Error when trying to parse {url}! Error code: {e}")
-
-
-def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
+async def parse_registered_doctors_page(page_request) -> list[Practitioner]:
     """
     Parses registered doctor page url from HK Government list of registered
     medical practitioners.
@@ -128,8 +125,8 @@ def parse_registered_doctors_page(page_url: str) -> list[Practitioner]:
         - List of practitioners parsed from page
     """
     # make request and initialise beautiful soup object
-    page_request = make_request(page_url)
-    soup = BeautifulSoup(page_request.content, "lxml")
+    # page_request = make_request(page_url)
+    soup = BeautifulSoup(page_request, "lxml")
 
     # find the first table on the page
     table = soup.find_all("table")[0]
@@ -170,6 +167,36 @@ def save_dataclass_list_to_json(list_to_save: list[Any], output_filepath: str):
         )
 
 
+async def load_doctors_pages(
+    doctors_fn: Callable[[str], str], num_pages: int
+) -> list[Practitioner]:
+    """
+    Fetches and processes multiple web pages asynchronously.
+
+    Args:
+        - doctors_url; Registered doctors url function.
+        - num_pages; Number of pages to parse.
+    Returns:
+        - A list containing the result of processing each page.
+    """
+    # get page urls
+    urls = [doctors_fn(page_num) for page_num in range(num_pages + 1)]
+    processed_pages = []
+
+    # load pages async
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for url in urls:
+            tasks.append(fetch(session, url))
+        pages = await asyncio.gather(*tasks)
+        for page in tqdm(pages):  # add tqdm for progress bar tracking
+            if page is not None:
+                processed_page = await parse_registered_doctors_page(page)
+                processed_pages.extend(processed_page)
+
+    return processed_pages
+
+
 if __name__ == "__main__":
     # set log level; debug, info, warning, error, critical
     logging.basicConfig(
@@ -177,15 +204,11 @@ if __name__ == "__main__":
         level=logging.DEBUG,
     )
 
-    full_practitioner_list = []
+    logger.info("Parsing registered doctors page asynchronously.")
+    loop = asyncio.get_event_loop()
+    full_practitioner_list = loop.run_until_complete(
+        load_doctors_pages(REGISTERED_DOCTORS_URL, NUM_PAGES)
+    )
 
-    logger.info("Parsing registered doctors page")
-
-    # Loop through pages and parse information; takes ~12 minutes with standard loop
-    for page_num in tqdm(range(NUM_PAGES + 1)):
-        practitioner_list = parse_registered_doctors_page(
-            REGISTERED_DOCTORS_URL(page_num)
-        )
-        full_practitioner_list.extend(practitioner_list)
-
+    logger.info(f"Loaded {NUM_PAGES} pages. Saving to {OUTPUT_JSONFILENAME}")
     save_dataclass_list_to_json(full_practitioner_list, OUTPUT_JSONFILENAME)
