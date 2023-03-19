@@ -123,6 +123,7 @@ async def load_pages(
         for page in tqdm(pages):  # add tqdm for progress bar tracking
             if page is not None:
                 processed_page = await parsing_fn(page)
-                processed_pages.extend(processed_page)
+                if processed_page is not None:
+                    processed_pages.extend(processed_page)
 
     return processed_pages
