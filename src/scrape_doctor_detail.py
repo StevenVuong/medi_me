@@ -70,7 +70,19 @@ async def parse_rows(rows: list[list[str]]) -> Practitioner:
             case "專科Specialty":
                 practitoner_info["specialty_name"] = cols[-1]
 
-            # TODO: If blank; to append qualifications, -2 and -1
+            # to add to qualifications; append
+            case "":
+                if "speciality_qualification" in practitoner_info:
+                    practitoner_info["qualifications"].append(
+                        Qualification(nature_tag=cols[-2], year=cols[-1])
+                    )
+                    raise KeyError("Multiple specializations!!")
+                elif "qualifications" in practitoner_info:
+                    practitoner_info["qualifications"].append(
+                        Qualification(nature_tag=cols[-2], year=cols[-1])
+                    )
+                    continue
+                raise KeyError(f"qualifications not in {practitoner_info}!")
 
     return [Practitioner(**practitoner_info)]  # return list to extend
 
