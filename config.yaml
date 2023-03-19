@@ -1,0 +1,5 @@
+scraper:
+  doctors_overview:
+    url: https://www.mchk.org.hk/english/list_register/list.php?ipp=20&type=L
+    num_pages: 767 # number of pages on overview website
+    output_path: "./data/test.json"

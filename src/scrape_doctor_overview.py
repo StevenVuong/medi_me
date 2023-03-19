@@ -12,12 +12,17 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from tqdm.asyncio import tqdm
 
+import yaml
+
+with open("./config.yaml") as f:
+    config_dict = yaml.safe_load(f)
+
 # registered doctors URL; takes page number as parameter
 REGISTERED_DOCTORS_URL = (
-    lambda x: f"https://www.mchk.org.hk/english/list_register/list.php?page={x}&ipp=20&type=L"
+    lambda x: f"{config_dict['scraper']['doctors_overview']['url']}&page={x}"
 )
-NUM_PAGES = 767  # num pages on the website - 767
-OUTPUT_JSONFILENAME = "./data/scraped_doctors_overview.json"
+NUM_PAGES = config_dict["scraper"]["doctors_overview"]["num_pages"]
+OUTPUT_JSONFILENAME = config_dict["scraper"]["doctors_overview"]["output_path"]
 
 
 def retry_with_backoff(retries=5, backoff_in_ms=100):
@@ -147,7 +152,9 @@ async def fetch(session: aiohttp.ClientSession, url: str) -> str:
     try:
         async with session.get(url) as response:
             if response.status == 520:
-                raise aiohttp.ClientResponseError(f"Error connecting to {url}")
+                raise aiohttp.ClientResponseError(f"520 error to: {url}")
+            if response.status == 500:
+                raise aiohttp.ClientResponseError(f"500 error to: {url}")
             assert (
                 response.status == 200
             ), f"Response status: {response.status}"
