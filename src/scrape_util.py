@@ -81,7 +81,7 @@ async def fetch(session: aiohttp.ClientSession, url: str) -> str:
             if response.status == 500:
                 raise aiohttp.ClientResponseError(f"500 error to: {url}")
             if response.status == 429:  # too many requests
-                asyncio.sleep(1)
+                asyncio.sleep(1)  # sleep for 1 second
                 raise aiohttp.ClientResponseError(f"429 error to: {url}")
             assert (
                 response.status == 200
@@ -118,9 +118,12 @@ async def load_pages(
         - A list containing the result of processing each page.
     """
     processed_pages = []
+    connector = aiohttp.TCPConnector(
+        limit=50
+    )  # num of simultaneous connections
 
     # load pages async
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
         logger.debug("Fetching URLS")
         for url in tqdm(urls_to_parse):
@@ -139,7 +142,5 @@ async def load_pages(
 
             assert type(processed_page) == list
             processed_pages.extend(processed_page)
-
-            await asyncio.sleep(1)
 
     return processed_pages

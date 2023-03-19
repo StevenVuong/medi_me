@@ -153,8 +153,11 @@ async def main():
     logging.info(f"Verifying new detailed records against overview..")
     for old_dd, new_dd in tqdm(zip(doctor_data, full_practitioner_list)):
         assert old_dd["registration_no"] == new_dd.registration_no
-        assert old_dd["name"] == new_dd.name
-        assert old_dd["address"] == new_dd.address
+        assert old_dd["name"]["text"] == new_dd.name
+        assert old_dd["address"]["text"] == new_dd.address
+
+    logging.info(f"Saving to file: {OUTPUT_JSON_PATH}")
+    save_dataclass_list_to_json(full_practitioner_list, OUTPUT_JSON_PATH)
 
 
 if __name__ == "__main__":
