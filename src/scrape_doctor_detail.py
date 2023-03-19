@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from typing import IO
+from tqdm.asyncio import tqdm
 
 import yaml
 from bs4 import BeautifulSoup
@@ -141,18 +142,18 @@ async def main():
 
     logging.info(f"Loading {len(doctor_data)} doctor records.")
     doctor_urls = [
-        DOCTORS_PAGE_FN(doctor["registration_no"])
-        for doctor in doctor_data[:3]
+        DOCTORS_PAGE_FN(doctor["registration_no"]) for doctor in doctor_data
     ]
     full_practitioner_list = await load_pages(
         doctor_urls, parse_detailed_doctors_page
     )
+    logging.info(f"Doctor records loaded! ")
 
-    from pprint import pprint
-
-    pprint(full_practitioner_list)
-
-    ## Last part; check against previous version!
+    logging.info(f"Verifying new detailed records against overview..")
+    for old_dd, new_dd in tqdm(zip(doctor_data, full_practitioner_list)):
+        assert old_dd["registration_no"] == new_dd.registration_no
+        assert old_dd["name"] == new_dd.name
+        assert old_dd["address"] == new_dd.address
 
 
 if __name__ == "__main__":
