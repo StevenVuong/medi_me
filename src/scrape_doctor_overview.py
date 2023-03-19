@@ -1,178 +1,35 @@
 import asyncio
-import functools
-import json
 import logging
-import random
-import re
-from dataclasses import asdict, dataclass
-from typing import Any, Callable
+from typing import IO, Any, Callable
 
 import aiohttp
+import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
 from tqdm.asyncio import tqdm
 
-import yaml
+from dr_dataclass import Practitioner
+from scrape_util import fetch, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
     config_dict = yaml.safe_load(f)
 
 # registered doctors URL; takes page number as parameter
-REGISTERED_DOCTORS_URL = (
+DOCTORS_PAGE_FN = (
     lambda x: f"{config_dict['scraper']['doctors_overview']['url']}&page={x}"
 )
 NUM_PAGES = config_dict["scraper"]["doctors_overview"]["num_pages"]
 OUTPUT_JSONFILENAME = config_dict["scraper"]["doctors_overview"]["output_path"]
 
 
-def retry_with_backoff(retries=5, backoff_in_ms=100):
-    """A decorator that retries a function with exponential backoff.
-
-    Args:
-        - retries (int): The number of times to retry the function before giving up.
-        - backoff_in_ms (int): The initial delay in milliseconds before retrying.
-
-    Returns:
-        - callable: A wrapped version of the input function that will be retried with exponential backoff.
+async def parse_registered_doctors_page(
+    page_request: IO[str],
+) -> list[Practitioner]:
     """
-
-    def wrapper(f):
-        @functools.wraps(f)
-        async def wrapped(*args, **kwargs):
-            """Wrapper function that will be retried with exponential backoff."""
-            x = 0
-            while True:
-                try:
-                    return await f(*args, **kwargs)
-                except Exception as e:
-                    print("Fetch error:", e)
-
-                    if x == retries:
-                        raise
-                    else:
-                        sleep_ms = backoff_in_ms * 2**x + random.uniform(
-                            0, 1
-                        )
-                        await asyncio.sleep(sleep_ms / 1000)
-                        x += 1
-                        print(f"Retrying {x + 1}/{retries}")
-
-        return wrapped
-
-    return wrapper
-
-
-@dataclass
-class EnZhText:
-    """Stores text and can extract both English alphabet and Chinese characters"""
-
-    text: str
-
-    def __init__(self, text: str):
-        self.text = text.strip()
-
-    def extract_en(self):
-        """Regex that captures alphabet, numbers and basic punctuation .,!?"""
-        return " ".join(re.findall(r"[a-zA-Z0-9.,!?]+", self.text))
-
-    def extract_zh(self):
-        """
-        Note: This is quite crude and only extracts purely
-        chinese characters.
-        """
-        return "".join(re.findall(r"[\u4e00-\u9fff]", self.text))
-
-
-@dataclass
-class Qualification:
-    """Class to store qualification of medical practitioner"""
-
-    nature: EnZhText | None  # nature of the qualification
-    tag: str | None
-    year: int
-
-    def __init__(self, nature_tag: str, year: str):
-        """Parse qualification item to class.
-        We separate the tag from nature_tag, which is the string inside
-        the brackets, and remove the brackets from nature_tag to get nature.
-        Args:
-            - nature_tag (str): Eg. MB BS (Lond)
-            - year (str): year of study
-        """
-        self.nature = EnZhText(re.sub(r"\[[^]]*\]|\([^)]*\)", "", nature_tag))
-
-        tag = re.findall(r"\[[^]]*\]|\([^)]*\)", nature_tag)
-        tag = [match.strip("()") for match in tag]
-        self.tag = tag[0] if tag else None
-
-        self.year = int(year)
-
-
-@dataclass
-class Practitioner:
-    """Class to store practitioner information, and parse from __init__"""
-
-    registration_no: str
-    name: EnZhText
-    address: EnZhText
-    qualifications: list[Qualification]
-
-    def __init__(self, str_column: list[str]):
-        """Format of str_column will be something like:
-        ['M15833', '區卓仲AU, CHEUK CHUNG', '', '', '', '香港大學內外全科醫學士MB BS (HK)', '', '2008']
-        """
-        self.registration_no = str_column[0]
-        self.name = EnZhText(str_column[1])
-        self.address = EnZhText(str_column[3])
-        self.qualifications = [
-            Qualification(nature_tag=str_column[5], year=str_column[7])
-        ]
-
-    def add_qualifications(self, str_column: list[str]):
-        """Format of str_column will be something like:
-        ['FHKAM (Radiology)', '', '1999']
-        """
-        self.qualifications.append(
-            Qualification(nature_tag=str_column[0], year=str_column[2])
-        )
-
-
-@retry_with_backoff(retries=5, backoff_in_ms=500)
-async def fetch(session: aiohttp.ClientSession, url: str) -> str:
-    """
-    Fetches the content of a web page asynchronously.
-
-    Args:
-        - session: An aiohttp.ClientSession object used to make the HTTP request.
-        - url: The URL of the web page to fetch.
-    Returns:
-        The content of the web page as a string if the request is successful,
-        otherwise None.
-    """
-    try:
-        async with session.get(url) as response:
-            if response.status == 520:
-                raise aiohttp.ClientResponseError(f"520 error to: {url}")
-            if response.status == 500:
-                raise aiohttp.ClientResponseError(f"500 error to: {url}")
-            assert (
-                response.status == 200
-            ), f"Response status: {response.status}"
-            return await response.text()
-    except aiohttp.ClientConnectionError as e:
-        print(f"An error occurred while connecting to {url}: {e}")
-    except aiohttp.ClientResponseError as e:
-        print(f"An client response error occurred while fetching {url}: {e}")
-    except asyncio.TimeoutError as e:
-        print(f"A timeout occurred while fetching {url}: {e}")
-
-
-async def parse_registered_doctors_page(page_request) -> list[Practitioner]:
-    """
-    Parses registered doctor page url from HK Government list of registered
+    Parses registered doctor page from HK Government list of registered
     medical practitioners.
     Args:
-        - page_url(str): URL of page to parse
+        - page_request(IO[str]): page request to parse
     Returns:
         - List of practitioners parsed from page
     """
@@ -211,44 +68,30 @@ async def parse_registered_doctors_page(page_request) -> list[Practitioner]:
     return practitioner_list
 
 
-def save_dataclass_list_to_json(list_to_save: list[Any], output_filepath: str):
-    """Takes an input of a dataclass list and saves to json file."""
-    with open(output_filepath, "w+", encoding="utf-8") as f:
-        json.dump(
-            [asdict(obj) for obj in list_to_save],
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
-
-
-async def load_doctors_pages(
-    doctors_fn: Callable[[str], str], num_pages: int
+async def load_pages(
+    urls_to_parse: list[str], parsing_fn: Callable[[IO[str]], list[Any]]
 ) -> list[Practitioner]:
     """
     Fetches and processes multiple web pages asynchronously.
 
     Args:
-        - doctors_url; Registered doctors url function.
-        - num_pages; Number of pages to parse.
+        - urls_to_parse; urls to load and parse
     Returns:
         - A list containing the result of processing each page.
     """
-    # get page urls
-    urls = [doctors_fn(page_num) for page_num in range(num_pages + 1)]
     processed_pages = []
 
     # load pages async
     async with aiohttp.ClientSession() as session:
         tasks = []
         logger.debug("Fetching URLS")
-        for url in tqdm(urls):
+        for url in tqdm(urls_to_parse):
             tasks.append(fetch(session, url))
         logger.debug("Gathering Tasks")
         pages = await asyncio.gather(*tasks)
         for page in tqdm(pages):  # add tqdm for progress bar tracking
             if page is not None:
-                processed_page = await parse_registered_doctors_page(page)
+                processed_page = await parsing_fn(page)
                 processed_pages.extend(processed_page)
 
     return processed_pages
@@ -261,9 +104,12 @@ if __name__ == "__main__":
         level=logging.DEBUG,
     )
 
-    logger.info("Parsing registered doctors page asynchronously.")
+    urls_to_parse = [
+        DOCTORS_PAGE_FN(page_num) for page_num in range(NUM_PAGES + 1)
+    ]
+    logger.info(f"Parsing {len(urls_to_parse)} pages asynchronously.")
     full_practitioner_list = asyncio.run(
-        load_doctors_pages(REGISTERED_DOCTORS_URL, NUM_PAGES)
+        load_pages(urls_to_parse, parse_registered_doctors_page)
     )
 
     logger.info(f"Loaded {NUM_PAGES} pages. Saving to {OUTPUT_JSONFILENAME}")
