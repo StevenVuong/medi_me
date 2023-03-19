@@ -6,7 +6,7 @@ import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
 
-from dr_dataclass import Practitioner
+from dr_dataclass import EnZhText, Practitioner, Qualification
 from scrape_util import load_pages, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
@@ -62,13 +62,25 @@ async def parse_registered_doctors_page(
         if cols[0].startswith("« Previous"):
             break
 
-        # parse to Practitioner object; first line is a regiration num 'M17694'
+        # parse to Practitioner object; first line is a regiration num eg. 'M17694'
+        # example of format of column:
+        # ['M15833', '區卓仲AU, CHEUK CHUNG', '', '', '', '香港大學內外全科醫學士MB BS (HK)', '', '2008']
+
         if cols[0][0] == "M" and len(cols[0]) == 6:
-            practitioner = Practitioner(cols)
+            practitioner = Practitioner(
+                registration_no=cols[0],
+                name=EnZhText(cols[1]),
+                address=EnZhText(cols[3]),
+                qualifications=[
+                    Qualification(nature_tag=cols[5], year=cols[7])
+                ],
+            )
             practitioner_list.append(practitioner)
 
         else:
-            practitioner_list[-1].add_qualifications(cols)
+            practitioner_list[-1].add_qualifications_overview(
+                Qualification(nature_tag=cols[0], year=cols[2])
+            )
 
     return practitioner_list
 

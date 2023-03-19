@@ -56,22 +56,3 @@ class Practitioner:
     name: EnZhText
     address: EnZhText
     qualifications: list[Qualification]
-
-    def __init__(self, str_column: list[str]):
-        """Format of str_column will be something like:
-        ['M15833', '區卓仲AU, CHEUK CHUNG', '', '', '', '香港大學內外全科醫學士MB BS (HK)', '', '2008']
-        """
-        self.registration_no = str_column[0]
-        self.name = EnZhText(str_column[1])
-        self.address = EnZhText(str_column[3])
-        self.qualifications = [
-            Qualification(nature_tag=str_column[5], year=str_column[7])
-        ]
-
-    def add_qualifications(self, str_column: list[str]):
-        """Format of str_column will be something like:
-        ['FHKAM (Radiology)', '', '1999']
-        """
-        self.qualifications.append(
-            Qualification(nature_tag=str_column[0], year=str_column[2])
-        )

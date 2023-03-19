@@ -32,8 +32,27 @@ async def parse_detailed_doctors_page(page_request: IO[str]):
     # page_request = make_request(page_url)
     soup = BeautifulSoup(page_request, "lxml")
 
-    print("><" * 80)
-    print(soup)
+    # find the first table on the page
+    table = soup.find_all("table")
+
+    # error handling if no table is found
+    table = table[0]
+    rows = table.find_all("tr")
+
+    for row in rows[:]:
+        # parse individual columns
+        cols = row.find_all("td")
+        cols = [ele.text.strip() for ele in cols]
+
+        # breaks once we get to the bottom of the table
+        if cols[0].startswith("* A registered"):
+            break
+
+        # skip empty rows
+        if len(cols) == 1 and cols[0] == "":
+            continue
+
+        print(cols)
 
     return
 
@@ -48,14 +67,18 @@ async def main():
     with open(INPUT_JSON_PATH, "r") as json_file:
         doctor_data = json.load(json_file)
 
+    print("$$" * 80)
     logging.info(f"Looping through {len(doctor_data)} doctor records.")
-    for doctor in doctor_data:
+    for idx, doctor in enumerate(doctor_data):
         print(doctor)
 
         doctor_url = DOCTORS_PAGE_FN(doctor["registration_no"])
 
         await load_pages([doctor_url], parse_detailed_doctors_page)
-        break
+
+        print("><" * 80)
+        if idx == 2:
+            break
 
 
 if __name__ == "__main__":
