@@ -19,13 +19,22 @@ REGISTERED_DOCTORS_URL = (
 NUM_PAGES = 767  # num pages on the website - 767
 OUTPUT_JSONFILENAME = "./data/scraped_doctors_overview.json"
 
-# TODO: Add docstrings
-
 
 def retry_with_backoff(retries=5, backoff_in_ms=100):
+    """A decorator that retries a function with exponential backoff.
+
+    Args:
+        - retries (int): The number of times to retry the function before giving up.
+        - backoff_in_ms (int): The initial delay in milliseconds before retrying.
+
+    Returns:
+        - callable: A wrapped version of the input function that will be retried with exponential backoff.
+    """
+
     def wrapper(f):
         @functools.wraps(f)
         async def wrapped(*args, **kwargs):
+            """Wrapper function that will be retried with exponential backoff."""
             x = 0
             while True:
                 try:
