@@ -51,6 +51,10 @@ def retry_with_backoff(retries=5, backoff_in_ms=100):
                         )
                         await asyncio.sleep(sleep_ms / 1000)
                         x += 1
+                        if x == retries + 1:
+                            raise asyncio.ClientResponseError(
+                                f"Failed after {retries} attempts!"
+                            )
                         print(f"Retrying {x + 1}/{retries}")
 
         return wrapped
@@ -76,6 +80,9 @@ async def fetch(session: aiohttp.ClientSession, url: str) -> str:
                 raise aiohttp.ClientResponseError(f"520 error to: {url}")
             if response.status == 500:
                 raise aiohttp.ClientResponseError(f"500 error to: {url}")
+            if response.status == 429:  # too many requests
+                asyncio.sleep(1)
+                raise aiohttp.ClientResponseError(f"429 error to: {url}")
             assert (
                 response.status == 200
             ), f"Response status: {response.status}"
@@ -132,5 +139,7 @@ async def load_pages(
 
             assert type(processed_page) == list
             processed_pages.extend(processed_page)
+
+            await asyncio.sleep(1)
 
     return processed_pages
