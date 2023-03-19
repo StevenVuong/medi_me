@@ -2,11 +2,11 @@ import asyncio
 import json
 import logging
 from typing import IO
-from tqdm.asyncio import tqdm
 
 import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
+from tqdm.asyncio import tqdm
 
 from dr_dataclass import Practitioner, Qualification
 from scrape_util import load_pages, save_dataclass_list_to_json
@@ -143,14 +143,14 @@ async def main():
     logging.info(f"Loading {len(doctor_data)} doctor records.")
     doctor_urls = [
         DOCTORS_PAGE_FN(doctor["registration_no"])
-        for doctor in doctor_data[:10]
+        for doctor in doctor_data[:1000]  # >15,000 doctors
     ]
     full_practitioner_list = await load_pages(
         doctor_urls, parse_detailed_doctors_page
     )
-    logging.info(f"Doctor records loaded! ")
+    logging.info("Doctor records loaded!")
 
-    logging.info(f"Verifying new detailed records against overview..")
+    logging.info("Verifying new detailed records against overview..")
     for old_dd, new_dd in tqdm(zip(doctor_data, full_practitioner_list)):
         assert old_dd["registration_no"] == new_dd.registration_no
         assert old_dd["name"]["text"] == new_dd.name
