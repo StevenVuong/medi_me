@@ -1,11 +1,24 @@
 import asyncio
 import functools
 import json
+import logging
 import random
 from dataclasses import asdict
-from typing import Any
+from typing import IO, Any, Callable
 
 import aiohttp
+import yaml
+from loguru import logger
+from tqdm.asyncio import tqdm
+
+with open("./config.yaml") as f:
+    config_dict = yaml.safe_load(f)
+
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
+    level=logging.DEBUG,
+)
+logger.add(config_dict["logpath"])
 
 
 def retry_with_backoff(retries=5, backoff_in_ms=100):
@@ -84,3 +97,32 @@ def save_dataclass_list_to_json(list_to_save: list[Any], output_filepath: str):
             ensure_ascii=False,
             indent=2,
         )
+
+
+async def load_pages(
+    urls_to_parse: list[str], parsing_fn: Callable[[IO[str]], list[Any]]
+) -> list[Any]:
+    """
+    Fetches and processes multiple web pages asynchronously.
+
+    Args:
+        - urls_to_parse; urls to load and parse
+    Returns:
+        - A list containing the result of processing each page.
+    """
+    processed_pages = []
+
+    # load pages async
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        logger.debug("Fetching URLS")
+        for url in tqdm(urls_to_parse):
+            tasks.append(fetch(session, url))
+        logger.debug("Gathering Tasks")
+        pages = await asyncio.gather(*tasks)
+        for page in tqdm(pages):  # add tqdm for progress bar tracking
+            if page is not None:
+                processed_page = await parsing_fn(page)
+                processed_pages.extend(processed_page)
+
+    return processed_pages

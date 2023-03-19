@@ -1,15 +1,13 @@
 import asyncio
 import logging
-from typing import IO, Any, Callable
+from typing import IO
 
-import aiohttp
 import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
-from tqdm.asyncio import tqdm
 
 from dr_dataclass import Practitioner
-from scrape_util import fetch, save_dataclass_list_to_json
+from scrape_util import load_pages, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
     config_dict = yaml.safe_load(f)
@@ -20,6 +18,13 @@ DOCTORS_PAGE_FN = (
 )
 NUM_PAGES = config_dict["scraper"]["doctors_overview"]["num_pages"]
 OUTPUT_JSONFILENAME = config_dict["scraper"]["doctors_overview"]["output_path"]
+
+# set log level; debug, info, warning, error, critical
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
+    level=logging.DEBUG,
+)
+logger.add(config_dict["logpath"])
 
 
 async def parse_registered_doctors_page(
@@ -68,49 +73,21 @@ async def parse_registered_doctors_page(
     return practitioner_list
 
 
-async def load_pages(
-    urls_to_parse: list[str], parsing_fn: Callable[[IO[str]], list[Any]]
-) -> list[Practitioner]:
+async def main():
     """
-    Fetches and processes multiple web pages asynchronously.
-
-    Args:
-        - urls_to_parse; urls to load and parse
-    Returns:
-        - A list containing the result of processing each page.
+    Parse overview of doctors page asynchronously and saves to JSON file.
     """
-    processed_pages = []
-
-    # load pages async
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        logger.debug("Fetching URLS")
-        for url in tqdm(urls_to_parse):
-            tasks.append(fetch(session, url))
-        logger.debug("Gathering Tasks")
-        pages = await asyncio.gather(*tasks)
-        for page in tqdm(pages):  # add tqdm for progress bar tracking
-            if page is not None:
-                processed_page = await parsing_fn(page)
-                processed_pages.extend(processed_page)
-
-    return processed_pages
-
-
-if __name__ == "__main__":
-    # set log level; debug, info, warning, error, critical
-    logging.basicConfig(
-        format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
-        level=logging.DEBUG,
-    )
-
     urls_to_parse = [
         DOCTORS_PAGE_FN(page_num) for page_num in range(NUM_PAGES + 1)
     ]
     logger.info(f"Parsing {len(urls_to_parse)} pages asynchronously.")
-    full_practitioner_list = asyncio.run(
-        load_pages(urls_to_parse, parse_registered_doctors_page)
+    full_practitioner_list = await load_pages(
+        urls_to_parse, parse_registered_doctors_page
     )
 
     logger.info(f"Loaded {NUM_PAGES} pages. Saving to {OUTPUT_JSONFILENAME}")
     save_dataclass_list_to_json(full_practitioner_list, OUTPUT_JSONFILENAME)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
