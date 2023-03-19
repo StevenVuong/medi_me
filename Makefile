@@ -15,14 +15,10 @@ activate:
 	poetry env use /bin/python3.10
 	poetry shell
 
-run_app:
-	@echo "Running app"
-	streamlit run app.py
-
 scrape:
 	clear
 	@echo "Scraping websites"
-	python ./src/scraper.py
+	python ./src/scrape_overview.py
 
 format:
 	@echo "Formatting..."
