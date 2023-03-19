@@ -28,7 +28,16 @@ logging.basicConfig(
 logger.add(config_dict["logpath"])
 
 
-async def parse_rows(rows: list[list[str]]) -> Practitioner:
+async def parse_rows(rows: list[list[str]]) -> list[Practitioner]:
+    """
+    Takes in a list of rows containing doctor information and returns a Practitioner object.
+
+    Args:
+        - rows (list[list[str]]): A list of lists where each inner list represents
+          a row of practitioner information.
+    Returns:
+        - list[Practitioner]: Containing the parsed information from the input rows.
+    """
     # initialise a dict to store practitioners information
     practitoner_info = {}
 
@@ -90,6 +99,16 @@ async def parse_rows(rows: list[list[str]]) -> Practitioner:
 
 
 async def parse_detailed_doctors_page(page_request: IO[str]) -> Practitioner:
+    """
+    Takes in a page request and returns a Practitioner object.
+    Uses BeautifulSoup to parse HTML content and extract information from first
+    table found on the page. Returns a Practitioner object afterward.
+
+    Args:
+        - page_request: A string representing an HTML page request
+    Returns:
+        - A Practitioner object containing information extracted from the page
+    """
     # make request and initialise beautiful soup object
     # page_request = make_request(page_url)
     soup = BeautifulSoup(page_request, "lxml")
@@ -120,12 +139,11 @@ async def main():
     with open(INPUT_JSON_PATH, "r") as json_file:
         doctor_data = json.load(json_file)
 
-    logging.info(f"Looping through {len(doctor_data)} doctor records.")
+    logging.info(f"Loading {len(doctor_data)} doctor records.")
     doctor_urls = [
         DOCTORS_PAGE_FN(doctor["registration_no"])
         for doctor in doctor_data[:3]
     ]
-
     full_practitioner_list = await load_pages(
         doctor_urls, parse_detailed_doctors_page
     )
