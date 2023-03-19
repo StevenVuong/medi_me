@@ -52,12 +52,14 @@ async def parse_registered_doctors_page(
     # initialise practitioner list to parse
     practitioner_list = []
 
+    # clean rows before parsing
     # after 9th row; as that's when medical doctors' information starts
-    for row in rows[9:]:
-        # parse individual columns
-        cols = row.find_all("td")
-        cols = [ele.text.strip() for ele in cols]
+    rows = [
+        [ele.text.strip() for ele in row.find_all("td")] for row in rows[9:]
+    ]
 
+    # parse columns in the rows
+    for cols in rows:
         # breaks once we get to the bottom of the table
         if cols[0].startswith("« Previous"):
             break
@@ -65,7 +67,6 @@ async def parse_registered_doctors_page(
         # parse to Practitioner object; first line is a regiration num eg. 'M17694'
         # example of format of column:
         # ['M15833', '區卓仲AU, CHEUK CHUNG', '', '', '', '香港大學內外全科醫學士MB BS (HK)', '', '2008']
-
         if cols[0][0] == "M" and len(cols[0]) == 6:
             practitioner = Practitioner(
                 registration_no=cols[0],

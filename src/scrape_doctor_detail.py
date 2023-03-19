@@ -7,6 +7,7 @@ import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
 
+from dr_dataclass import EnZhText, Practitioner, Qualification
 from scrape_util import load_pages, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
@@ -39,18 +40,16 @@ async def parse_detailed_doctors_page(page_request: IO[str]):
     table = table[0]
     rows = table.find_all("tr")
 
-    for row in rows[:]:
-        # parse individual columns
-        cols = row.find_all("td")
-        cols = [ele.text.strip() for ele in cols]
+    # parse individual columns in rows
+    rows = [[ele.text.strip() for ele in row.find_all("td")] for row in rows]
+    # skip empty rows
+    rows = [row for row in rows if not (len(row) == 1 and row[0] == "")]
 
+    # parse columns in rows
+    for cols in rows:
         # breaks once we get to the bottom of the table
         if cols[0].startswith("* A registered"):
             break
-
-        # skip empty rows
-        if len(cols) == 1 and cols[0] == "":
-            continue
 
         print(cols)
 
