@@ -44,7 +44,9 @@ async def parse_rows(rows: list[list[str]]) -> Practitioner:
                 practitoner_info["name"] = cols[-1]
 
             case "註冊地址Registered Address*":
-                practitoner_info["address"] = cols[-1]
+                # set address to blank if is just a '-' value
+                address = "" if cols[-1] == "-" else cols[-1]
+                practitoner_info["address"] = address
 
             # can add registration num for general and specialty
             case "註冊編號Registration No.":
