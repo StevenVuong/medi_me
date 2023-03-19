@@ -79,7 +79,7 @@ async def parse_registered_doctors_page(
             practitioner_list.append(practitioner)
 
         else:
-            practitioner_list[-1].add_qualifications_overview(
+            practitioner_list[-1].qualifications.append(
                 Qualification(nature_tag=cols[0], year=cols[2])
             )
 

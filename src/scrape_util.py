@@ -118,12 +118,19 @@ async def load_pages(
         logger.debug("Fetching URLS")
         for url in tqdm(urls_to_parse):
             tasks.append(fetch(session, url))
+
         logger.debug("Gathering Tasks")
         pages = await asyncio.gather(*tasks)
-        for page in tqdm(pages):  # add tqdm for progress bar tracking
-            if page is not None:
-                processed_page = await parsing_fn(page)
-                if processed_page is not None:
-                    processed_pages.extend(processed_page)
+        for page in tqdm(pages):
+            if page is None:
+                continue
+
+            processed_page = await parsing_fn(page)
+
+            if processed_page is None:
+                continue
+
+            assert type(processed_page) == list
+            processed_pages.extend(processed_page)
 
     return processed_pages

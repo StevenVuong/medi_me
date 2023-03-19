@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 
 @dataclass
@@ -43,9 +43,14 @@ class Qualification:
 
         tag = re.findall(r"\[[^]]*\]|\([^)]*\)", nature_tag)
         tag = [match.strip("()") for match in tag]
-        self.tag = tag[0] if tag else None
+        self.tag = "".join([t for t in tag]) if tag else None
 
         self.year = int(year)
+
+
+@dataclass
+class Specialism:
+    """Class to store specialism of medical practitioner."""
 
 
 @dataclass
@@ -56,3 +61,15 @@ class Practitioner:
     name: EnZhText
     address: EnZhText
     qualifications: list[Qualification]
+
+    # add speciality; this is an optional as not all doctors specialise
+    specialty_registration_no: str | None = None
+    specialty_name: str | None = None
+    # found only one specialty per registration; so not a list
+    speciality_qualification: Qualification | None = None
+
+    def __init__(self, **kwargs):
+        names = set([f.name for f in fields(self)])
+        for k, v in kwargs.items():
+            if k in names:
+                setattr(self, k, v)
