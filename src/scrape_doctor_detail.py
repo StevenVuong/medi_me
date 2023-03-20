@@ -143,7 +143,7 @@ async def main():
     logging.info(f"Loading {len(doctor_data)} doctor records.")
     doctor_urls = [
         DOCTORS_PAGE_FN(doctor["registration_no"])
-        for doctor in doctor_data[:1000]  # >15,000 doctors
+        for doctor in doctor_data[:]  # >15,000 doctors; 10k works
     ]
     full_practitioner_list = await load_pages(
         doctor_urls, parse_detailed_doctors_page

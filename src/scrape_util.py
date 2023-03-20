@@ -118,7 +118,7 @@ async def load_pages(
         - A list containing the result of processing each page.
     """
     processed_pages = []
-    connector = aiohttp.TCPConnector(limit=50)  # simultaneous connections
+    connector = aiohttp.TCPConnector(limit=50)  # num connections
 
     # load pages async
     async with aiohttp.ClientSession(connector=connector) as session:
