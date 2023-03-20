@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import IO
 
 import yaml
@@ -20,6 +21,7 @@ DOCTORS_PAGE_FN = (
 )
 INPUT_JSON_PATH = config_dict["scraper"]["doctors_overview"]["output_path"]
 OUTPUT_JSON_PATH = config_dict["scraper"]["doctors_detail"]["output_path"]
+BATCH_SIZE = config_dict["scraper"]["doctors_detail"]["batch_size"]
 
 # set log level; debug, info, warning, error, critical
 logging.basicConfig(
@@ -141,23 +143,35 @@ async def main():
         doctor_data = json.load(json_file)
 
     logging.info(f"Loading {len(doctor_data)} doctor records.")
+    # >15,000 doctors urls; 10k works
     doctor_urls = [
-        DOCTORS_PAGE_FN(doctor["registration_no"])
-        for doctor in doctor_data[:]  # >15,000 doctors; 10k works
+        DOCTORS_PAGE_FN(doctor["registration_no"]) for doctor in doctor_data
     ]
-    full_practitioner_list = await load_pages(
-        doctor_urls, parse_detailed_doctors_page
-    )
-    logging.info("Doctor records loaded!")
 
-    logging.info("Verifying new detailed records against overview..")
-    for old_dd, new_dd in tqdm(zip(doctor_data, full_practitioner_list)):
-        assert old_dd["registration_no"] == new_dd.registration_no
-        assert old_dd["name"]["text"] == new_dd.name
-        assert old_dd["address"]["text"] == new_dd.address
+    # split save filepath
+    file_name, file_ext = os.path.split(OUTPUT_JSON_PATH)
 
-    logging.info(f"Saving to file: {OUTPUT_JSON_PATH}")
-    save_dataclass_list_to_json(full_practitioner_list, OUTPUT_JSON_PATH)
+    # loop thorugh batches
+    for i in range(0, len(doctor_urls), BATCH_SIZE):
+        doctors_url_batch = doctor_urls[i : i + BATCH_SIZE]
+        logging.info(f"Handling batch {i}:{i+BATCH_SIZE}")
+
+        full_practitioner_list = await load_pages(
+            doctors_url_batch, parse_detailed_doctors_page
+        )
+        logging.info("Doctor records loaded!")
+
+        logging.info("Verifying new detailed records against overview..")
+        for old_dd, new_dd in tqdm(
+            zip(doctor_data[i : i + BATCH_SIZE], full_practitioner_list)
+        ):
+            assert old_dd["registration_no"] == new_dd.registration_no
+            assert old_dd["name"]["text"] == new_dd.name
+            assert old_dd["address"]["text"] == new_dd.address
+
+        save_filepath = file_name + f"_{i}" + file_ext
+        logging.info(f"Saving to file: {save_filepath}")
+        save_dataclass_list_to_json(full_practitioner_list, save_filepath)
 
 
 if __name__ == "__main__":
