@@ -143,7 +143,7 @@ async def main():
         doctor_data = json.load(json_file)
 
     logging.info(f"Loading {len(doctor_data)} doctor records.")
-    # >15,000 doctors urls; 10k works
+    # >15,000 doctors urls; split into batches otherwise error 1015
     doctor_urls = [
         DOCTORS_PAGE_FN(doctor["registration_no"]) for doctor in doctor_data
     ]
@@ -169,7 +169,7 @@ async def main():
             assert old_dd["name"]["text"] == new_dd.name
             assert old_dd["address"]["text"] == new_dd.address
 
-        save_filepath = file_name + f"_{i}" + file_ext
+        save_filepath = file_name + f"/{i}_" + file_ext
         logging.info(f"Saving to file: {save_filepath}")
         save_dataclass_list_to_json(full_practitioner_list, save_filepath)
 

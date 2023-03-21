@@ -9,4 +9,4 @@ scraper:
   doctors_detail:
     url: https://www.mchk.org.hk/english/list_register/doctor_detail.php?reg_no=
     output_path: ./data/scraped_doctors_detail.json
-    batch_size: 5000
+    batch_size: 3000
