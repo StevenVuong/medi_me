@@ -6,10 +6,9 @@ from typing import IO
 
 import yaml
 from bs4 import BeautifulSoup
+from dr_dataclass import Practitioner, Qualification
 from loguru import logger
 from tqdm.asyncio import tqdm
-
-from dr_dataclass import Practitioner, Qualification
 from util import load_pages, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
