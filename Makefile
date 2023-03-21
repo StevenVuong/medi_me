@@ -18,12 +18,12 @@ activate:
 scrape_overview:
 	clear
 	@echo "Scraping all doctors overview."
-	python ./src/scrape_doctor_overview.py
+	python ./src/scrape/doctor_overview.py
 
 scrape_detail:
 	clear
 	@echo "Scraping doctor details"
-	python ./src/scrape_doctor_detail.py
+	python ./src/scrape/doctor_detail.py
 
 format:
 	@echo "Formatting..."

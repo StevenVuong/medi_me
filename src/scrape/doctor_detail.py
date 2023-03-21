@@ -10,7 +10,7 @@ from loguru import logger
 from tqdm.asyncio import tqdm
 
 from dr_dataclass import Practitioner, Qualification
-from scrape_util import load_pages, save_dataclass_list_to_json
+from util import load_pages, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
     config_dict = yaml.safe_load(f)
