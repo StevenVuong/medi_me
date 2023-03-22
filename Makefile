@@ -25,6 +25,11 @@ scrape_detail:
 	@echo "Scraping doctor details"
 	python ./src/scrape/doctor_detail.py
 
+elastic_search:
+	clear
+	@echo "Elastic search"
+	python ./src/elastic_search/main.py
+
 format:
 	@echo "Formatting..."
 	black ./

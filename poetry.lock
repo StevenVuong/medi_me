@@ -1068,6 +1068,64 @@ websocket-client = ">=0.32.0"
 ssh = ["paramiko (>=2.4.3)"]
 
 [[package]]
+name = "elastic-transport"
+version = "8.4.0"
+description = "Transport classes and utilities shared among Python Elastic client libraries"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "elastic-transport-8.4.0.tar.gz", hash = "sha256:b9ad708ceb7fcdbc6b30a96f886609a109f042c0b9d9f2e44403b3133ba7ff10"},
+    {file = "elastic_transport-8.4.0-py3-none-any.whl", hash = "sha256:19db271ab79c9f70f8c43f8f5b5111408781a6176b54ab2e54d713b6d9ceb815"},
+]
+
+[package.dependencies]
+certifi = "*"
+urllib3 = ">=1.26.2,<2"
+
+[package.extras]
+develop = ["aiohttp", "mock", "pytest", "pytest-asyncio", "pytest-cov", "pytest-httpserver", "pytest-mock", "requests", "trustme"]
+
+[[package]]
+name = "elasticsearch"
+version = "8.6.2"
+description = "Python client for Elasticsearch"
+category = "main"
+optional = false
+python-versions = ">=3.6, <4"
+files = [
+    {file = "elasticsearch-8.6.2-py3-none-any.whl", hash = "sha256:8ccbebd9a0f6f523c7db67bb54863dde8bdb93daae4ff97f7c814e0500a73e84"},
+    {file = "elasticsearch-8.6.2.tar.gz", hash = "sha256:084458e84caa91e3ad807b68aa82c022e785bead853a3b125641a25e894a1d47"},
+]
+
+[package.dependencies]
+elastic-transport = ">=8,<9"
+
+[package.extras]
+async = ["aiohttp (>=3,<4)"]
+requests = ["requests (>=2.4.0,<3.0.0)"]
+
+[[package]]
+name = "elasticsearch-async"
+version = "6.2.0"
+description = "Async backend for elasticsearch-py"
+category = "main"
+optional = false
+python-versions = "~=3.4"
+files = [
+    {file = "elasticsearch-async-6.2.0.tar.gz", hash = "sha256:2534f3ec80da275723cabd6d354c83eb4b4f6241ad1432b48c2c05fb12175ab1"},
+    {file = "elasticsearch_async-6.2.0-py2-none-any.whl", hash = "sha256:281f5a7193811a9eb60669734d297bde13feeb745fd33c0c8af537e939aa887f"},
+]
+
+[package.dependencies]
+aiohttp = "*"
+async-timeout = "*"
+elasticsearch = ">=6.0.0"
+
+[package.extras]
+develop = ["pytest", "pytest-asyncio", "pytest-cov"]
+
+[[package]]
 name = "entrypoints"
 version = "0.4"
 description = "Discover and load entry points from installed packages."
@@ -5216,4 +5274,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4fffcf80ce1260452f6ef20e738cde39e078e9fca930b77a673e0cf5ead25b4a"
+content-hash = "f680f5041aec9de94c9db27afdf65ddb00f65d454fcb5598dfe7a5dbafc1f4ff"
