@@ -28,16 +28,7 @@ wsl -d docker-desktop
 sysctl -w vm.max_map_count=1073741824
 ```
 
-Then we can start up our docker compose
-
-```wsl sh
-docker-compose up -d
-docker-compose down # to stop; can restart cluster
-docker-compose up # to restart cluster
-docker-compose down -v # to delete the network and volumes when stop cluster
-```
-
-Or for a single node cluster:
+Then run the following to create a single-node cluster:
 
 ```wsl sh
 docker network create elastic

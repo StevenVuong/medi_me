@@ -1,16 +1,14 @@
 import json
 import os
+
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from tqdm import tqdm
 
-
 load_dotenv()
 ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
+INDEX_NAME = os.getenv("ELASTIC_INDEXNAME")
 data_filepath = "./data/"
-
-# create an elasticsearch index
-index_name = "test-index"
 
 
 def main():
@@ -27,8 +25,8 @@ def main():
     print(client_info)
 
     # check if index exists
-    index_exists = es.indices.exists(index=index_name)
-    assert index_exists == True, f"{index_name} Index does not exist!"
+    index_exists = es.indices.exists(index=INDEX_NAME)
+    assert index_exists, f"{INDEX_NAME} Index does not exist!"
 
     # load json files
     json_files_to_load = os.listdir(data_filepath)
@@ -45,7 +43,7 @@ def main():
 
         # add each json doc to the index
         for json_doc in tqdm(json_docs):
-            es.index(index=index_name, document=json_doc)
+            es.index(index=INDEX_NAME, document=json_doc)
 
 
 if __name__ == "__main__":
