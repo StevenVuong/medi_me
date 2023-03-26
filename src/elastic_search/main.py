@@ -1,18 +1,62 @@
+import os
+
+from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-import configparser
 
-config = configparser.ConfigParser()
-config.read("./.secrets/config.ini")
+load_dotenv()
+ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
 
-print(config["ELASTIC"])
-# Create the client instance
-client = Elasticsearch(
-    "https://localhost:9200",
-    ca_certs="./.secrets/http_ca.crt",
-    basic_auth=("elastic", config["ELASTIC"]["PASSWORD"]),
-)
+# https://www.elastic.co/guide/en/elasticsearch/client/python-api/master/connecting.html
 
-# Successful response!
-client_info = client.info()
-print(client_info)
-# {'name': 'instance-0000000000', 'cluster_name': ...}
+# create an elasticsearch index
+index_name = "test-index"
+index_settings = {
+    "mappings": {
+        "properties": {
+            "registration_no": {"type": "keyword"},
+            "name": {"type": "text"},
+            "address": {"type": "text"},
+            "qualifications": {
+                "properties": {
+                    "nature": {"properties": {"text": {"type": "text"}}},
+                    "tag": {"type": "keyword"},
+                    "year": {"type": "integer"},
+                }
+            },
+            "specialty_registration_no": {"type": "keyword"},
+            "specialty_name": {"type": "text"},
+            "speciality_qualification": {
+                "properties": {
+                    "nature": {"properties": {"text": {"type": "text"}}},
+                    "tag": {"type": "keyword"},
+                    "year": {"type": "integer"},
+                }
+            },
+        }
+    }
+}
+
+
+def main():
+    # Create the client instance
+    es = Elasticsearch(
+        "https://localhost:9200",
+        ca_certs="./http_ca.crt",
+        basic_auth=("elastic", ELASTIC_PASSWORD),
+    )
+
+    # Successful response!
+    client_info = es.info()
+
+    print("Elasticsearch client info:")
+    print(client_info)
+
+    # create index
+    es.indices.create(index=index_name, body=index_settings)
+    print("Index created successfully!")
+
+    # add data
+
+
+if __name__ == "__main__":
+    main()

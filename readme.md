@@ -21,21 +21,27 @@ And later:
 
 Docs for Elasticsearch Docker [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html)
 
-Steps to follow:
-
-```sh
-docker pull docker.elastic.co/elasticsearch/elasticsearch:8.6.2
-docker network create elastic
-docker run --name es01 --net elastic -p 9200:9200 -it docker.elastic.co/elasticsearch/elasticsearch:8.6.2
-docker cp es01:/usr/share/elasticsearch/config/certs/http_ca.crt .
-
-# verify connection
-curl --cacert ./.secrets/http_ca.crt -u elastic https://localhost:9200
-```
-
-To increase virtual memory [wsl](https://stackoverflow.com/questions/51445846/elasticsearch-max-virtual-memory-areas-vm-max-map-count-65530-is-too-low-inc):
+Increase virtual memory first
 
 ```powershell
 wsl -d docker-desktop
-sysctl -w vm.max_map_count=262144
+sysctl -w vm.max_map_count=1073741824
+```
+
+Then we can start up our docker compose
+
+```wsl sh
+docker-compose up -d
+docker-compose down # to stop; can restart cluster
+docker-compose up # to restart cluster
+docker-compose down -v # to delete the network and volumes when stop cluster
+```
+
+Or for a single node cluster:
+
+```wsl sh
+docker network create elastic
+docker run --name es01 --net elastic -p 9200:9200 -it docker.elastic.co/elasticsearch/elasticsearch:8.6.2
+docker cp es01:/usr/share/elasticsearch/config/certs/http_ca.crt .
+curl --cacert http_ca.crt -u elastic https://localhost:9200
 ```
