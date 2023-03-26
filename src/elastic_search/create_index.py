@@ -1,5 +1,4 @@
 import os
-
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
@@ -54,8 +53,6 @@ def main():
     # create index
     es.indices.create(index=index_name, body=index_settings)
     print("Index created successfully!")
-
-    # add data
 
 
 if __name__ == "__main__":
