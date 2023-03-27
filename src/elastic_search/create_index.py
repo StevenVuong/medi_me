@@ -68,8 +68,9 @@ def create_index(
         index_settings (dict): The settings for the index.
 
     """
-    # create index
-    es_client.indices.create(index=index_name, body=index_settings)
+    if not es_client.indices.exists():
+        # create index
+        es_client.indices.create(index=index_name, body=index_settings)
 
     # check if index exists
     index_exists = es_client.indices.exists(index=index_name)
