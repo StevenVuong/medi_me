@@ -49,8 +49,8 @@ INDEX_SETTINGS = {
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
     level=logging.DEBUG,
+    filename=config_dict["logpath"],
 )
-logger.add(config_dict["logpath"])
 
 
 def create_index(

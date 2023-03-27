@@ -22,8 +22,8 @@ OUTPUT_JSONFILENAME = config_dict["scraper"]["doctors_overview"]["output_path"]
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
     level=logging.DEBUG,
+    filename=config_dict["logpath"],
 )
-logger.add(config_dict["logpath"])
 
 
 async def parse_registered_doctors_page(

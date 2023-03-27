@@ -26,8 +26,8 @@ BATCH_SIZE = config_dict["scraper"]["doctors_detail"]["batch_size"]
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
     level=logging.DEBUG,
+    filename=config_dict["logpath"],
 )
-logger.add(config_dict["logpath"])
 
 
 async def parse_rows(rows: list[list[str]]) -> list[Practitioner]:
