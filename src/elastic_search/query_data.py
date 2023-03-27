@@ -1,6 +1,7 @@
 import logging
 import os
-
+from elasticsearch import Elasticsearch
+from elastic_transport import ObjectApiResponse
 import yaml
 from dotenv import load_dotenv
 from loguru import logger
@@ -26,6 +27,38 @@ logging.basicConfig(
 logger.add(config_dict["logpath"])
 
 
+def search(
+    es_client: Elasticsearch, index_name: str, query_string: dict
+) -> ObjectApiResponse:
+    """Searches the index for the query.
+    Args:
+        es_client: Elasticsearch client
+        index_name: Name of the index to search
+        query: Query to search for
+    Returns:
+        res: Elasticsearch response
+    """
+    # Search query
+    query = {
+        "multi_match": {
+            "query": query_string,
+            "fields": [
+                "name",
+                "address",
+                "qualifications.nature.text",
+                "qualifications.nature.tag",
+                "specialty_name",
+                "speciality_qualification.nature.text",
+                "speciality_qualification.nature.tag",
+            ],
+        }
+    }
+
+    # get results from elasticsearch; ordered by score in descending order
+    res = es_client.search(index=index_name, query=query)
+    return res
+
+
 if __name__ == "__main__":
     logging.info("Creating elasticsearch client")
     es_client = create_elasticsearch_client(
@@ -48,24 +81,11 @@ if __name__ == "__main__":
     count = int(res[0]["count"])
     logging.info(f"Document count: {count}")
 
-    # Search query
-    query = {
-        "multi_match": {
-            "query": "elizabeth",
-            "fields": [
-                "name",
-                "address",
-                "qualifications.nature.text",
-                "qualifications.nature.tag",
-                "specialty_name",
-                "speciality_qualification.nature.text",
-                "speciality_qualification.nature.tag",
-            ],
-        }
-    }
-
-    # get results from elasticsearch; ordered by score in descending order
-    res = es_client.search(index=INDEX_NAME, query=query)
+    # Search for a query
+    query_string = "Dr. John"
+    logging.info(f"Searching {INDEX_NAME} index for {query_string}...")
+    res = search(es_client, INDEX_NAME, query_string)
+    logging.info(f"{res['hits']['total']['value']} results found")
 
     hits = res["hits"]["hits"]
     for hit in hits:
