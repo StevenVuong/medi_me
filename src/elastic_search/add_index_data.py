@@ -81,6 +81,11 @@ if __name__ == "__main__":
         data_dir=DATA_DIR,
         es_client=es_client,
     )
-    logging.info(
-        "X number of documents added to index!"
-    )  # TODO: add number of documents added
+
+    # Refresh the index
+    es_client.indices.refresh(index=INDEX_NAME)
+
+    # Get the document count
+    res = es_client.cat.count(index=INDEX_NAME, params={"format": "json"})
+    count = int(res[0]["count"])
+    logging.info(f"{count} number of documents added to index!")

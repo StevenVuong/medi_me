@@ -36,8 +36,11 @@ if __name__ == "__main__":
         password=ELASTIC_PASSWORD,
     )
 
-    res = es_client.search(index=INDEX_NAME, body={"query": {"match_all": {}}})
+    # Refresh the index
+    es_client.indices.refresh(index=INDEX_NAME)
 
-    print("Got %d Hits:" % res["hits"]["total"]["value"])
-    for hit in res["hits"]["hits"]:
-        print(hit["_source"])
+    # Get the document count
+    res = es_client.cat.count(index=INDEX_NAME, params={"format": "json"})
+    count = int(res[0]["count"])
+
+    print(f"Document count: {count}")
