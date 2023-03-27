@@ -40,7 +40,28 @@ if __name__ == "__main__":
     es_client.indices.refresh(index=INDEX_NAME)
 
     # Get the document count
-    res = es_client.cat.count(index=INDEX_NAME, params={"format": "json"})
+    res = es_client.cat.count(index=INDEX_NAME, format="json")
     count = int(res[0]["count"])
 
     print(f"Document count: {count}")
+
+    # Search query
+    query = {
+        "multi_match": {
+            "query": "doctor",
+            "fields": [
+                "name",
+                "address",
+                "qualifications.nature.text",
+                "specialty_name",
+                "speciality_qualification.nature.text",
+            ],
+        }
+    }
+
+    # get results from elasticsearch
+    res = es_client.search(index=INDEX_NAME, query=query)
+    hits = res["hits"]["hits"]
+
+    for hit in hits:
+        print(hit["_source"])
