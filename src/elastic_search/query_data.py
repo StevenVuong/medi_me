@@ -3,7 +3,6 @@ import os
 
 import yaml
 from dotenv import load_dotenv
-from elasticsearch import Elasticsearch
 from loguru import logger
 from utils import create_elasticsearch_client
 
@@ -36,32 +35,39 @@ if __name__ == "__main__":
         password=ELASTIC_PASSWORD,
     )
 
+    # check if index exists
+    index_exists = es_client.indices.exists(index=INDEX_NAME)
+    assert index_exists, f"{INDEX_NAME} Index does not exist!"
+    logging.info("Index exists!")
+
     # Refresh the index
     es_client.indices.refresh(index=INDEX_NAME)
 
     # Get the document count
     res = es_client.cat.count(index=INDEX_NAME, format="json")
     count = int(res[0]["count"])
-
-    print(f"Document count: {count}")
+    logging.info(f"Document count: {count}")
 
     # Search query
     query = {
         "multi_match": {
-            "query": "doctor",
+            "query": "elizabeth",
             "fields": [
                 "name",
                 "address",
                 "qualifications.nature.text",
+                "qualifications.nature.tag",
                 "specialty_name",
                 "speciality_qualification.nature.text",
+                "speciality_qualification.nature.tag",
             ],
         }
     }
 
-    # get results from elasticsearch
+    # get results from elasticsearch; ordered by score in descending order
     res = es_client.search(index=INDEX_NAME, query=query)
-    hits = res["hits"]["hits"]
 
+    hits = res["hits"]["hits"]
     for hit in hits:
+        print(hit["_score"])
         print(hit["_source"])
