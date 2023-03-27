@@ -25,10 +25,19 @@ scrape_detail:
 	@echo "Scraping doctor details"
 	python ./src/scrape/doctor_detail.py
 
-elastic_search:
+# create elastic search index and populate with data
+setup_elastic_index:
 	clear
-	@echo "Elastic search"
-	python ./src/elastic_search/main.py
+	@echo "Creating elasticsearch index"
+	python ./src/elastic_search/create_index.py
+	@echo "Populating elasticsearch index"
+	python ./src/elastic_search/populate_index.py
+
+# run streamlit app
+run_app:
+	clear
+	@echo "Running streamlit app"
+	streamlit run ./src/app/app.py
 
 format:
 	@echo "Formatting..."
