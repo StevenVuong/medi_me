@@ -7,7 +7,6 @@ from typing import IO
 import yaml
 from bs4 import BeautifulSoup
 from dr_dataclass import Practitioner, Qualification
-from loguru import logger
 from tqdm.asyncio import tqdm
 from util import load_pages, save_dataclass_list_to_json
 
@@ -137,7 +136,7 @@ async def main():
     - Load page of detailed information about doctors to get specialist information, if any.
     - Also can run assertion checks on the data folder against doctors' described details.
     """
-    logger.info(f"Loading doctors jsonfile: {INPUT_JSON_PATH}.")
+    logging.info(f"Loading doctors jsonfile: {INPUT_JSON_PATH}.")
     with open(INPUT_JSON_PATH, "r") as json_file:
         doctor_data = json.load(json_file)
 

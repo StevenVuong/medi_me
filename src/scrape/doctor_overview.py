@@ -5,7 +5,6 @@ from typing import IO
 import yaml
 from bs4 import BeautifulSoup
 from dr_dataclass import EnZhText, Practitioner, Qualification
-from loguru import logger
 from util import load_pages, save_dataclass_list_to_json
 
 with open("./config.yaml") as f:
@@ -92,12 +91,12 @@ async def main():
     urls_to_parse = [
         DOCTORS_PAGE_FN(page_num) for page_num in range(NUM_PAGES + 1)
     ]
-    logger.info(f"Parsing {len(urls_to_parse)} pages asynchronously.")
+    logging.info(f"Parsing {len(urls_to_parse)} pages asynchronously.")
     full_practitioner_list = await load_pages(
         urls_to_parse, parse_registered_doctors_page
     )
 
-    logger.info(f"Loaded {NUM_PAGES} pages. Saving to {OUTPUT_JSONFILENAME}")
+    logging.info(f"Loaded {NUM_PAGES} pages. Saving to {OUTPUT_JSONFILENAME}")
     save_dataclass_list_to_json(full_practitioner_list, OUTPUT_JSONFILENAME)
 
 

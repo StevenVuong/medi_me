@@ -5,7 +5,6 @@ import os
 import yaml
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-from loguru import logger
 from tqdm import tqdm
 from utils import create_elasticsearch_client
 

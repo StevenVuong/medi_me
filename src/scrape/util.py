@@ -8,7 +8,6 @@ from typing import IO, Any, Callable
 
 import aiohttp
 import yaml
-from loguru import logger
 from tqdm.asyncio import tqdm
 
 with open("./config.yaml") as f:
@@ -17,8 +16,8 @@ with open("./config.yaml") as f:
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
     level=logging.DEBUG,
+    filename=config_dict["logpath"],
 )
-logger.add(config_dict["logpath"])
 
 
 def retry_with_backoff(retries=5, backoff_in_ms=100):
@@ -123,11 +122,11 @@ async def load_pages(
     # load pages async
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
-        logger.debug("Fetching URLS")
+        logging.debug("Fetching URLS")
         for url in tqdm(urls_to_parse):
             tasks.append(fetch(session, url))
 
-        logger.debug("Gathering Tasks")
+        logging.debug("Gathering Tasks")
         pages = await asyncio.gather(*tasks)
         for page in tqdm(pages):
             if page is None:

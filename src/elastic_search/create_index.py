@@ -4,7 +4,6 @@ import os
 import yaml
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-from loguru import logger
 from utils import create_elasticsearch_client
 
 with open("./config.yaml") as f:
