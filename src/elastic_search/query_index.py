@@ -87,7 +87,7 @@ if __name__ == "__main__":
     res = search(es_client, INDEX_NAME, query_string)
     logging.info(f"{res['hits']['total']['value']} results found")
 
-    hits = res["hits"]["hits"]
-    for hit in hits:
+    # printing hits
+    for hit in res["hits"]["hits"]:
         print(hit["_score"])
         print(hit["_source"])
