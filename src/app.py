@@ -36,17 +36,25 @@ es_client = create_elasticsearch_client(
 
 
 def st_hit(hit):
-    st.write(f"Registration No: {hit['registration_no']}")
-    st.write(f"Name: {hit['name']}")
-    st.write(f"Address: {hit['address']}")
+    st.write(
+        f"**Name:** {hit['name']}, Registration No: {hit['registration_no']}"
+    )
+    st.write(f"**Address:** {hit['address']}")
 
-    st.write("Qualifications:")
+    st.write("**Qualifications:**")
     for qual in hit["qualifications"]:
         st.write(f"{qual['nature']['text']} ({qual['tag']}) - {qual['year']}")
 
-    st.write(f"Specialty Registration No: {hit['specialty_registration_no']}")
-    st.write(f"Specialty Name: {hit['specialty_name']}")
-    st.write(f"Speciality Qualification: {hit['speciality_qualification']}")
+    if hit["specialty_registration_no"]:
+        st.write(
+            f"**Specialty Name:** {hit['specialty_name']} Registration No: {hit['specialty_registration_no']}"
+        )
+        st.write("**Specialty Qualifications:**")
+        if hit["speciality_qualification"]:
+            qual = hit["speciality_qualification"]
+            st.write(
+                f"{qual['nature']['text']}:({qual['tag']}) - {qual['year']}"
+            )
 
 
 def main():
