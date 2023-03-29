@@ -1,11 +1,12 @@
-import streamlit as st
 import logging
 import os
 
+import streamlit as st
 import yaml
 from dotenv import load_dotenv
-from elastic_search.utils import create_elasticsearch_client
+
 from elastic_search.query_index import search
+from elastic_search.utils import create_elasticsearch_client
 
 with open("./config.yaml") as f:
     config_dict = yaml.safe_load(f)
@@ -36,6 +37,14 @@ es_client = create_elasticsearch_client(
 
 
 def st_hit(hit):
+    """Displays the details of a hit in Streamlit format.
+
+    Args:
+        hit (dict): A dictionary containing the details of a hit.
+
+    Returns:
+        None
+    """
     st.write(
         f"**Name:** {hit['name']}, Registration No: {hit['registration_no']}"
     )
@@ -58,6 +67,17 @@ def st_hit(hit):
 
 
 def main():
+    """Displays a search bar and searches for the query in Elasticsearch index.
+
+    Raises:
+        AssertionError: If the Elasticsearch index does not exist.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
     st.title("Search Doctor's Register:")
     search_query = st.text_input("Enter search words:")
 
@@ -69,8 +89,6 @@ def main():
     # Refresh the index
     es_client.indices.refresh(index=INDEX_NAME)
 
-    # TODO: Format and make look pretty
-    # https://betterprogramming.pub/build-a-search-engine-for-medium-stories-using-streamlit-and-elasticsearch-b6e717819448
     if search_query:
         # Search query
         logging.info(f"Searching {INDEX_NAME} index for {search_query}...")
@@ -78,7 +96,6 @@ def main():
         logging.info(f"{res['hits']['total']['value']} results found")
 
         for hit in res["hits"]["hits"]:
-            print(hit)
             st_hit(hit["_source"])
             st.write("-------------------")
 

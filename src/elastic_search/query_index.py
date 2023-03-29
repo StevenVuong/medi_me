@@ -1,9 +1,11 @@
 import logging
 import os
-from elasticsearch import Elasticsearch
-from elastic_transport import ObjectApiResponse
+
 import yaml
 from dotenv import load_dotenv
+from elastic_transport import ObjectApiResponse
+from elasticsearch import Elasticsearch
+
 from .utils import create_elasticsearch_client
 
 with open("./config.yaml") as f:
