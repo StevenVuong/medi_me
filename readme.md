@@ -72,7 +72,9 @@ make run_app
 
 ### TODO
 
-- Improve dictionary of doctors search
-- Include some information on the doctors for it to be useful; filters on location, language, etc.
-  - Gather more information on doctors; find a thesaurus of medical specialists
-  - Play with Elasticsearch querying
+- Full list of medical specialists
+  - Write up their descriptions somewhere to query
+  - Find a way to map them to medical specialists
+
+- Gather more information on medical specialists to be useful
+  - Filters on location, language, price, reviews, complaints, news, etc..

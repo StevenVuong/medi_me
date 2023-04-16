@@ -1,8 +1,8 @@
 import logging
 import os
-import openai
 import re
 
+import openai
 import streamlit as st
 import yaml
 from dotenv import load_dotenv
@@ -119,6 +119,17 @@ def display_doctors_register(search_query: str):
 
 
 def display_medical_issue(search_query: str):
+    """
+    Queries OpenAI's API for medical specialists related to medical problem and
+    displays the results for user to select. Then queries again for a
+    description of the specialist. Returns medical specialist chosen.
+
+    Args:
+        search_query (str): The medical issue to search for.
+
+    Returns:
+        str: The selected medical specialist.
+    """
     # create a prompt for the user to enter their medical problem
     prompt = MEDICAL_PROMPT + search_query
     logging.info(f"Querying OpenAPI: {prompt}.")
@@ -150,12 +161,6 @@ def main():
 
     Raises:
         AssertionError: If the Elasticsearch index does not exist.
-
-    Args:
-        None
-
-    Returns:
-        None
     """
     query_option = st.radio(
         "Search by:", ["Doctor's Register", "Medical Issue"], index=0
