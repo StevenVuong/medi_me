@@ -1,5 +1,7 @@
 import logging
 import os
+import openai
+import re
 
 import streamlit as st
 import yaml
@@ -7,17 +9,26 @@ from dotenv import load_dotenv
 
 from src.elastic_search.query_index import search
 from src.elastic_search.utils import create_elasticsearch_client
+from src.openai_query import call_openai, strip_string
 
 with open("./config.yaml") as f:
     config_dict = yaml.safe_load(f)
 
-# load environment variables and set constants
+# load environment variables
 load_dotenv()
+
+# load values for Elasticsearch
 ELASTIC_USERNAME = os.getenv("ELASTIC_USERNAME")
 ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
 INDEX_NAME = os.getenv("ELASTIC_INDEXNAME")
 CERTS_PATH = config_dict["elasticsearch"]["certs_path"]
 HOST = config_dict["elasticsearch"]["host_path"]
+
+# load values for OpenAPI
+openai.api_type = os.getenv("OPENAI_API_TYPE")
+openai.api_base = os.getenv("OPENAI_API_BASE")
+openai.api_version = os.getenv("OPENAI_API_VERSION")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 # set log level; debug, info, warning, error, critical
@@ -28,11 +39,17 @@ logging.basicConfig(
 )
 
 logging.info("Creating elasticsearch client")
-es_client = create_elasticsearch_client(
+ES_CLIENT = create_elasticsearch_client(
     host=HOST,
     certs_path=CERTS_PATH,
     username=ELASTIC_USERNAME,
     password=ELASTIC_PASSWORD,
+)
+
+MEDICAL_PROMPT = (
+    "Suggest medical specialists for a patient to see based on "
+    "their described symptoms in the format of {{specialist 1}},"
+    " {{specialist 2}}, ..., {{specialist n}}.\nPatient:"
 )
 
 
@@ -81,18 +98,19 @@ def display_doctors_register(search_query: str):
         AssertionError: If the Elasticsearch index does not exist.
     """
     # check if index exists
-    index_exists = es_client.indices.exists(index=INDEX_NAME)
+    index_exists = ES_CLIENT.indices.exists(index=INDEX_NAME)
     assert index_exists, f"{INDEX_NAME} Index does not exist!"
     logging.info("Index exists! Proceeding with query.")
 
     # Refresh the index
-    es_client.indices.refresh(index=INDEX_NAME)
+    ES_CLIENT.indices.refresh(index=INDEX_NAME)
 
     if search_query:
         # Search query
         logging.info(f"Searching {INDEX_NAME} index for {search_query}...")
-        res = search(es_client, INDEX_NAME, search_query)
+        res = search(ES_CLIENT, INDEX_NAME, search_query)
         logging.info(f"{res['hits']['total']['value']} results found")
+        logging.info(res)
 
         for hit in res["hits"]["hits"]:
             st_hit(hit["_source"])
@@ -111,16 +129,36 @@ def main():
     Returns:
         None
     """
-    option = st.radio(
+    query_option = st.radio(
         "Search by:", ["Doctor's Register", "Medical Issue"], index=0
     )
     search_query = st.text_input("Enter search words:")
+    logging.info(f"{query_option} Query: {search_query}.")
 
-    if option == "Doctor's Register":
+    if query_option == "Doctor's Register":
         display_doctors_register(search_query)
 
-    if option == "Medical Issue":
-        st.write("Coming soon...")
+    if query_option == "Medical Issue":
+        # create a prompt for the user to enter their medical problem
+        prompt = MEDICAL_PROMPT + search_query
+        logging.info(f"Querying OpenAPI: {prompt}.")
+
+        # get the response from OpenAI's API
+        response = call_openai(prompt)
+        response = strip_string(response)
+        print(response)
+
+        # parse specialist names from the response
+        medical_specialists = re.findall(r"{{(.*?)}}", response)
+        st.write(f"Found {len(medical_specialists)} medical specialists.")
+        print(medical_specialists)
+        medical_specialist_option = st.multiselect(
+            "Select options:", medical_specialists
+        )
+
+    st.write(
+        "Disclaimer: This is a prototype and not a medical too. Please consult a doctor for any medical advice and/or the emergency room for any medical emergencies."
+    )
 
 
 if __name__ == "__main__":
