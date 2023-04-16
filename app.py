@@ -75,7 +75,7 @@ def st_hit(hit):
 
     if hit["specialty_registration_no"]:
         st.write(
-            f"**Specialty Name:** {hit['specialty_name']} Registration No: {hit['specialty_registration_no']}"
+            f"**Specialty Name:** {hit['specialty_name']}, Registration No: {hit['specialty_registration_no']}"
         )
         st.write("**Specialty Qualifications:**")
         if hit["speciality_qualification"]:
