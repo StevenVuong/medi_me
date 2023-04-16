@@ -37,7 +37,8 @@ es_client = create_elasticsearch_client(
 
 
 def st_hit(hit):
-    """Displays the details of a hit in Streamlit format.
+    """Displays the details of a hit from Elasticsearch medical database in
+    Streamlit format.
 
     Args:
         hit (dict): A dictionary containing the details of a hit.
@@ -78,26 +79,29 @@ def main():
     Returns:
         None
     """
-    st.title("Search Doctor's Register:")
+    option = st.radio(
+        "Search by:", ["Doctor's Register", "Medical Issue"], index=0
+    )
     search_query = st.text_input("Enter search words:")
 
-    # check if index exists
-    index_exists = es_client.indices.exists(index=INDEX_NAME)
-    assert index_exists, f"{INDEX_NAME} Index does not exist!"
-    logging.info("Index exists! Proceeding with query.")
+    if option == "Doctor's Register":
+        # check if index exists
+        index_exists = es_client.indices.exists(index=INDEX_NAME)
+        assert index_exists, f"{INDEX_NAME} Index does not exist!"
+        logging.info("Index exists! Proceeding with query.")
 
-    # Refresh the index
-    es_client.indices.refresh(index=INDEX_NAME)
+        # Refresh the index
+        es_client.indices.refresh(index=INDEX_NAME)
 
-    if search_query:
-        # Search query
-        logging.info(f"Searching {INDEX_NAME} index for {search_query}...")
-        res = search(es_client, INDEX_NAME, search_query)
-        logging.info(f"{res['hits']['total']['value']} results found")
+        if search_query:
+            # Search query
+            logging.info(f"Searching {INDEX_NAME} index for {search_query}...")
+            res = search(es_client, INDEX_NAME, search_query)
+            logging.info(f"{res['hits']['total']['value']} results found")
 
-        for hit in res["hits"]["hits"]:
-            st_hit(hit["_source"])
-            st.write("-------------------")
+            for hit in res["hits"]["hits"]:
+                st_hit(hit["_source"])
+                st.write("-------------------")
 
 
 if __name__ == "__main__":
