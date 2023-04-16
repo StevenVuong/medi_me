@@ -5,8 +5,8 @@ import streamlit as st
 import yaml
 from dotenv import load_dotenv
 
-from elastic_search.query_index import search
-from elastic_search.utils import create_elasticsearch_client
+from src.elastic_search.query_index import search
+from src.elastic_search.utils import create_elasticsearch_client
 
 with open("./config.yaml") as f:
     config_dict = yaml.safe_load(f)

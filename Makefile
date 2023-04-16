@@ -37,7 +37,7 @@ setup_elastic_index:
 run_app:
 	clear
 	@echo "Running streamlit app"
-	streamlit run ./src/app.py
+	streamlit run ./app.py
 
 format:
 	@echo "Formatting..."
