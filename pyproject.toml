@@ -30,6 +30,7 @@ elasticsearch-async = "^6.2.0"
 setuptools = "^67.6.0"
 testresources = "^2.0.1"
 python-dotenv = "^1.0.0"
+openai = "^0.27.4"
 
 
 [tool.poetry.group.dev.dependencies]

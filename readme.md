@@ -68,3 +68,9 @@ Suggest medical specialists for a patient to see based on their described sympto
 
 Patient:
 ```
+
+## Run App
+
+```wsl sh
+make run_app
+```
