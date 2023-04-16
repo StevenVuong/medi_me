@@ -67,6 +67,38 @@ def st_hit(hit):
             )
 
 
+def display_doctors_register(search_query: str):
+    """Searches for doctors in an Elasticsearch index and displays the results
+    of doctor's register and parses the result to be displayed on Streamlit.
+
+    This function checks if the Elasticsearch index exists and refreshes it
+    before performing a search query. The search results are then displayed.
+
+    Args:
+        search_query (str): Search query  when searching for doctors in Elasticsearch index.
+
+    Raises:
+        AssertionError: If the Elasticsearch index does not exist.
+    """
+    # check if index exists
+    index_exists = es_client.indices.exists(index=INDEX_NAME)
+    assert index_exists, f"{INDEX_NAME} Index does not exist!"
+    logging.info("Index exists! Proceeding with query.")
+
+    # Refresh the index
+    es_client.indices.refresh(index=INDEX_NAME)
+
+    if search_query:
+        # Search query
+        logging.info(f"Searching {INDEX_NAME} index for {search_query}...")
+        res = search(es_client, INDEX_NAME, search_query)
+        logging.info(f"{res['hits']['total']['value']} results found")
+
+        for hit in res["hits"]["hits"]:
+            st_hit(hit["_source"])
+            st.write("-------------------")
+
+
 def main():
     """Displays a search bar and searches for the query in Elasticsearch index.
 
@@ -85,23 +117,10 @@ def main():
     search_query = st.text_input("Enter search words:")
 
     if option == "Doctor's Register":
-        # check if index exists
-        index_exists = es_client.indices.exists(index=INDEX_NAME)
-        assert index_exists, f"{INDEX_NAME} Index does not exist!"
-        logging.info("Index exists! Proceeding with query.")
+        display_doctors_register(search_query)
 
-        # Refresh the index
-        es_client.indices.refresh(index=INDEX_NAME)
-
-        if search_query:
-            # Search query
-            logging.info(f"Searching {INDEX_NAME} index for {search_query}...")
-            res = search(es_client, INDEX_NAME, search_query)
-            logging.info(f"{res['hits']['total']['value']} results found")
-
-            for hit in res["hits"]["hits"]:
-                st_hit(hit["_source"])
-                st.write("-------------------")
+    if option == "Medical Issue":
+        st.write("Coming soon...")
 
 
 if __name__ == "__main__":
