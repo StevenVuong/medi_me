@@ -61,16 +61,18 @@ docker start es01
 
 ### GPT
 
-We will use GPT (text-davinci-003) to help identify medical specialists based on symptoms; the prompt is:
-
-```md
-Suggest medical specialists for a patient to see based on their described symptoms in the format of {{specialist 1}}, {{specialist 2}}, ..., {{specialist n}}:
-
-Patient:
-```
+We will use GPT (text-davinci-003) to help identify medical specialists based on symptoms.
+Then based on the symptoms find the best medical specialist.
 
 ## Run App
 
 ```wsl sh
 make run_app
 ```
+
+### TODO
+
+- Improve dictionary of doctors search
+- Include some information on the doctors for it to be useful; filters on location, language, etc.
+  - Gather more information on doctors; find a thesaurus of medical specialists
+  - Play with Elasticsearch querying

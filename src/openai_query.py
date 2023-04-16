@@ -38,6 +38,16 @@ def parse_response(response: OpenAIObject) -> str:
     return choice["text"]
 
 
+def strip_string(string):
+    """Strip newlines from the start and end of a string."""
+    if string[0] == "\n":
+        return strip_string(string[1:])
+    elif string[-1] == "\n":
+        return strip_string(string[:-1])
+    else:
+        return string
+
+
 def call_openai(prompt: str) -> str:
     """Summarise the text using OpenAI's API."""
     response = openai.Completion.create(
@@ -51,17 +61,7 @@ def call_openai(prompt: str) -> str:
         best_of=3,
         stop=None,
     )
-    return parse_response(response)
-
-
-def strip_string(string):
-    """Strip newlines from the start and end of a string."""
-    if string[0] == "\n":
-        return strip_string(string[1:])
-    elif string[-1] == "\n":
-        return strip_string(string[:-1])
-    else:
-        return string
+    return strip_string(parse_response(response))
 
 
 if __name__ == "__main__":

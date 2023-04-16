@@ -51,6 +51,7 @@ MEDICAL_PROMPT = (
     "their described symptoms in the format of {{specialist 1}},"
     " {{specialist 2}}, ..., {{specialist n}}.\nPatient:"
 )
+MEDICAL_PROMPT_DESC = "Explain very very simply what the specialist does:"
 
 
 def st_hit(hit):
@@ -117,6 +118,33 @@ def display_doctors_register(search_query: str):
             st.write("-------------------")
 
 
+def display_medical_issue(search_query: str):
+    # create a prompt for the user to enter their medical problem
+    prompt = MEDICAL_PROMPT + search_query
+    logging.info(f"Querying OpenAPI: {prompt}.")
+
+    # get the response from OpenAI's API
+    query_response = call_openai(prompt)
+    logging.info(f"OpenAPI response: {query_response}.")
+
+    # parse specialist names from the response
+    medical_specialists = re.findall(r"{{(.*?)}}", query_response)
+    st.write(f"Found {len(medical_specialists)} medical specialists.")
+    medical_specialist_option = st.selectbox(
+        "Select options:", medical_specialists
+    )
+    logging.info(f"Selected specialist: {medical_specialist_option}.")
+
+    # get special description
+    specialist_description = call_openai(
+        MEDICAL_PROMPT_DESC + medical_specialist_option
+    )
+    st.write(specialist_description)
+    logging.info(f"Specialist description: {specialist_description}.")
+    st.write("---")
+    return medical_specialist_option
+
+
 def main():
     """Displays a search bar and searches for the query in Elasticsearch index.
 
@@ -139,25 +167,13 @@ def main():
         display_doctors_register(search_query)
 
     if query_option == "Medical Issue":
-        # create a prompt for the user to enter their medical problem
-        prompt = MEDICAL_PROMPT + search_query
-        logging.info(f"Querying OpenAPI: {prompt}.")
-
-        # get the response from OpenAI's API
-        response = call_openai(prompt)
-        response = strip_string(response)
-        print(response)
-
-        # parse specialist names from the response
-        medical_specialists = re.findall(r"{{(.*?)}}", response)
-        st.write(f"Found {len(medical_specialists)} medical specialists.")
-        print(medical_specialists)
-        medical_specialist_option = st.multiselect(
-            "Select options:", medical_specialists
-        )
+        medical_specialist_option = display_medical_issue(search_query)
+        display_doctors_register(medical_specialist_option)
 
     st.write(
-        "Disclaimer: This is a prototype and not a medical too. Please consult a doctor for any medical advice and/or the emergency room for any medical emergencies."
+        "Disclaimer: This is a prototype and not a medical too. Please consult a"
+        "doctor for any medical advice and/or the emergency room for any medical"
+        "emergencies."
     )
 
 
