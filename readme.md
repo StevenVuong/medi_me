@@ -72,9 +72,13 @@ make run_app
 
 ### TODO
 
-- Full list of medical specialists
-  - Write up their descriptions somewhere to query
-  - Find a way to map them to medical specialists
+- Obtain medical problems and their summaries; perhaps on wikipedia. Also can look at medical specialties.
+  - Vector embed these with embedding-ada-002
 
-- Gather more information on medical specialists to be useful
-  - Filters on location, language, price, reviews, complaints, news, etc..
+- Then find medical specialists that are related to the medical problem
+  - Vector embed these with embedding-ada-002
+  - Have a way to map to the problem
+
+For medical specialists; if we find a database; see if we can filter by:
+  - Filters on: location, language, price, reviews, complaints, news, etc..
+  
