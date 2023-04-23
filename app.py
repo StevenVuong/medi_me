@@ -140,7 +140,9 @@ def display_medical_issue(search_query: str):
 
     # parse specialist names from the response
     medical_specialists = re.findall(r"{{(.*?)}}", query_response)
-    st.write(f"Found {len(medical_specialists)} medical specialists.")
+    st.write(
+        f"Found {len(medical_specialists)} medical specialists related to your search."
+    )
     medical_specialist_option = st.selectbox(
         "Select options:", medical_specialists
     )
@@ -165,13 +167,17 @@ def main():
     query_option = st.radio(
         "Search by:", ["Doctor's Register", "Medical Issue"], index=0
     )
-    search_query = st.text_input("Enter search words:")
-    logging.info(f"{query_option} Query: {search_query}.")
 
     if query_option == "Doctor's Register":
+        search_query = st.text_input(
+            "Enter the medical specialist you want to search:"
+        )
+        logging.info(f"{query_option} Query: {search_query}.")
         display_doctors_register(search_query)
 
     if query_option == "Medical Issue":
+        search_query = st.text_input("Enter your medical issue:")
+        logging.info(f"{query_option} Query: {search_query}.")
         medical_specialist_option = display_medical_issue(search_query)
         display_doctors_register(medical_specialist_option)
 
